@@ -1,0 +1,159 @@
+你是负责构建维护修改更新项目的编程专家，以下是项目结构：
+1. 数据集处理模块（dataset.py）
+职责：
+
+载入 C-MAPSS 数据集
+
+数据切片（支持各种切片方式）
+
+数据预处理（如标准化、归一化、缺失值填充等）
+
+数据批量生成器（用于训练）
+
+接口：
+class Dataset:
+    def __init__(self, dataset_path: str, slice_type: str = "sliding_window", window_size: int = 128, batch_size: int = 32):
+        # 初始化数据集路径、切片方式等参数
+        pass
+
+    def load_data(self):
+        # 载入数据集
+        pass
+
+    def preprocess_data(self):
+        # 进行数据预处理
+        pass
+
+    def slice_data(self):
+        # 按照指定的切片方式对数据进行切片
+        pass
+
+    def get_batch_generator(self):
+        # 提供数据批量生成器（用于训练）
+        pass
+
+2. 模型模块（tsmixer_model.py）
+职责：
+
+构建 TSMixer 模型
+
+编译模型（设置优化器、损失函数等）
+
+训练模型
+
+保存与加载模型
+
+接口：
+class TSMixerModel:
+    def __init__(self, input_shape: tuple, num_classes: int, learning_rate: float = 0.001):
+        # 初始化模型架构的参数
+        pass
+
+    def build_model(self):
+        # 定义模型架构
+        pass
+
+    def compile_model(self):
+        # 编译模型（选择优化器、损失函数等）
+        pass
+
+    def train(self, train_data, val_data, epochs: int = 20):
+        # 训练模型
+        pass
+
+    def save_model(self, save_path: str):
+        # 保存训练好的模型
+        pass
+
+    def load_model(self, model_path: str):
+        # 加载已经训练好的模型
+        pass
+
+3. 训练过程模块（trainer.py）
+职责：
+
+组织训练过程（数据加载、训练、验证等）
+
+早停策略（根据验证集上的性能停止训练）
+
+训练和评估
+
+接口：
+class Trainer:
+    def __init__(self, model: object, dataset: object, epochs: int = 20, batch_size: int = 32):
+        # 初始化模型、数据集、训练参数等
+        pass
+
+    def train(self):
+        # 开始训练过程，进行多轮训练
+        pass
+
+    def validate(self, val_data):
+        # 在验证集上进行验证
+        pass
+
+    def evaluate(self, test_data):
+        # 训练完成后，在测试集上评估性能
+        pass
+
+4. 主文件（main.py）
+职责：
+
+负责整合各个模块（数据集、模型、训练）进行整体训练流程的启动。
+
+代码示例：
+from dataset import Dataset
+from tsmixer_model import TSMixerModel
+from trainer import Trainer
+
+def main():
+    # 数据集初始化
+    dataset = Dataset(dataset_path="path_to_cmapss_data")
+    
+    # 模型初始化
+    model = TSMixerModel(input_shape=(None, 100), num_classes=10)
+    
+    # 训练过程初始化
+    trainer = Trainer(model=model, dataset=dataset)
+    
+    # 开始训练
+    trainer.train()
+
+if __name__ == "__main__":
+    main()
+
+5. 目录结构
+project/
+│
+├── dataset.py          # 数据集处理模块
+│   └── Dataset         # 加载和处理数据
+│
+├── tsmixer_model.py    # 模型模块
+│   └── TSMixerModel    # 构建、训练、保存、加载模型
+│
+├── trainer.py          # 训练模块
+│   └── Trainer         # 管理训练过程，评估与保存模型
+│
+├── main.py             # 主脚本，用于调用所有模块并进行训练
+└── utils.py            # 辅助工具，如日志记录、绘图等
+
+6. 扩展性和修改
+更换模型：
+
+只需要修改 tsmixer_model.py 中的模型构建部分，确保接口一致。
+
+dataset.py 和 trainer.py 保持不变。
+
+新增超参数优化：
+
+可以在 trainer.py 中加入超参数搜索功能（如网格搜索或随机搜索）。
+
+支持不同数据集：
+
+在 dataset.py 中添加数据源和切片策略即可支持其他数据集。
+
+未来功能扩展：
+
+可以增加 utils.py 用于日志记录、绘图或保存模型的辅助工具。
+
+新增模型训练的早停策略或自定义损失函数。
