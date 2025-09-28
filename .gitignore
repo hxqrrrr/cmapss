@@ -108,3 +108,27 @@ Thumbs.db
 results/
 outputs/
 plots/
+
+# 临时文件和杂项
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+.DS_Store
+Thumbs.db
+
+# Git相关临时文件
+GIT_UPLOAD_GUIDE.md
+git_setup.bat
+git_setup.sh
+
+# 编辑器临时文件
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统文件
+desktop.ini
+.directory
