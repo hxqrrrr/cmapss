@@ -45,6 +45,8 @@ def parse_args():
 
     # TSMixer特定参数
     parser.add_argument("--tsmixer_layers", type=int, default=4, help="TSMixer层数")
+    parser.add_argument("--time_expansion", type=int, default=4, help="时间混合层扩展倍数")
+    parser.add_argument("--feat_expansion", type=int, default=4, help="特征混合层扩展倍数")
 
     # 学习率调度器
     parser.add_argument("--scheduler", type=str, default="onecycle",
@@ -111,7 +113,9 @@ def create_model(args, input_size, seq_len):
     elif args.model == "tsmixer":
         model = TSMixerModel(
             input_size=input_size, seq_len=seq_len,
-            num_classes=1, num_layers=args.tsmixer_layers,
+            num_layers=args.tsmixer_layers,
+            time_expansion=args.time_expansion,
+            feat_expansion=args.feat_expansion,
             dropout=args.dropout
         )
     else:

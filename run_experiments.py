@@ -27,6 +27,55 @@ def main():
     """运行一系列实验"""
     
     experiments = [
+        
+        # TSMixer实验
+        {
+            "name": "TSMixer + FD001 (基础配置)",
+            "cmd": ["python", "train.py", 
+                   "--model", "tsmixer", 
+                   "--fault", "FD001", 
+                   "--batch_size", "256",
+                   "--epochs", "80",
+                   "--learning_rate", "0.001",
+                   "--tsmixer_layers", "4",
+                   "--time_expansion", "4",
+                   "--feat_expansion", "4",
+                   "--dropout", "0.1",
+                   "--scheduler", "plateau"
+                   ]
+        },
+        
+        {
+            "name": "TSMixer + FD001 (深层模型)",
+            "cmd": ["python", "train.py", 
+                   "--model", "tsmixer", 
+                   "--fault", "FD001", 
+                   "--batch_size", "128",
+                   "--epochs", "100",
+                   "--learning_rate", "0.0008",
+                   "--tsmixer_layers", "6",
+                   "--time_expansion", "6",
+                   "--feat_expansion", "4",
+                   "--dropout", "0.15",
+                   "--scheduler", "plateau"
+                   ]
+        },
+        
+        {
+            "name": "TSMixer + FD002 (复杂数据)",
+            "cmd": ["python", "train.py", 
+                   "--model", "tsmixer", 
+                   "--fault", "FD002", 
+                   "--batch_size", "128",
+                   "--epochs", "120",
+                   "--learning_rate", "0.0005",
+                   "--tsmixer_layers", "5",
+                   "--time_expansion", "8",
+                   "--feat_expansion", "6",
+                   "--dropout", "0.2",
+                   "--scheduler", "onecycle"
+                   ]
+        },
 
         
         # Transformer实验
