@@ -1,12 +1,14 @@
 # C-MAPSS 航空发动机剩余使用寿命预测项目
 
-基于TSMixer和Transformer模型的航空发动机剩余使用寿命（RUL）预测项目，使用NASA C-MAPSS数据集进行训练和评估。
+基于多种深度学习模型的航空发动机剩余使用寿命（RUL）预测项目，使用NASA C-MAPSS数据集进行训练和评估。
 
 ## 项目简介
 
-本项目实现了多种深度学习模型用于航空发动机的剩余使用寿命预测，主要包括：
-- TSMixer模型
-- Transformer模型
+本项目实现了多种先进的深度学习模型用于航空发动机的剩余使用寿命预测，主要包括：
+- **TSMixer模型** - 基于时间序列混合的轻量级架构
+- **Transformer模型** - 基于注意力机制的序列建模
+- **BiLSTM模型** - 双向长短期记忆网络
+- **RBM-LSTM模型** - 基于受限玻尔兹曼机的半监督学习框架
 - 支持多种数据预处理和切片策略
 
 ## 项目结构
@@ -18,7 +20,9 @@ project/
 ├── models/                 # 模型模块
 │   ├── base_model.py      # 基础模型类
 │   ├── tsmixer_model.py   # TSMixer模型实现
-│   └── transformer_model.py # Transformer模型实现
+│   ├── transformer_model.py # Transformer模型实现
+│   ├── bilstm_model.py    # BiLSTM模型实现
+│   └── ellefsen_rbm_lstm_model.py # RBM-LSTM模型实现
 ├── train.py               # 训练脚本
 ├── run_experiments.py     # 实验运行脚本
 ├── requirements.txt       # 依赖包列表
