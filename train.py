@@ -12,6 +12,8 @@ from datetime import datetime
 from dataset import CMAPSSDataset
 from models.tsmixer_model import TSMixerModel
 from models.transformer_model import TransformerModel
+from models.bilstm_model import BiLSTMModel
+from models.ellefsen_rbm_lstm_model import EllefsenRBMLSTMModel
 
 
 def parse_args():
@@ -19,7 +21,7 @@ def parse_args():
 
     # 模型选择
     parser.add_argument("--model", type=str, default="transformer",
-                        choices=["tsmixer", "transformer"], help="选择模型架构")
+                        choices=["tsmixer", "transformer", "bilstm", "rbmlstm"], help="选择模型架构")
 
     # 数据集配置
     parser.add_argument("--fault", type=str, default="FD001",
@@ -47,11 +49,35 @@ def parse_args():
     parser.add_argument("--tsmixer_layers", type=int, default=4, help="TSMixer层数")
     parser.add_argument("--time_expansion", type=int, default=4, help="时间混合层扩展倍数")
     parser.add_argument("--feat_expansion", type=int, default=4, help="特征混合层扩展倍数")
+    
+    # BiLSTM特定参数
+    parser.add_argument("--lstm_hidden", type=int, default=64, help="LSTM隐藏层维度")
+    parser.add_argument("--lstm_layers", type=int, default=2, help="LSTM层数")
+    parser.add_argument("--bidirectional", action="store_true", default=True, help="是否使用双向LSTM")
+    parser.add_argument("--mlp_hidden", type=int, default=64, help="MLP隐藏层维度")
+    parser.add_argument("--lstm_pool", type=str, default="last", choices=["last", "mean", "max"], help="LSTM输出池化方式")
+
+    # RBM-LSTM特定参数
+    parser.add_argument("--rbm_hidden", type=int, default=64, help="RBM隐藏单元数")
+    parser.add_argument("--lstm_hidden1", type=int, default=64, help="第一层LSTM隐藏单元数")
+    parser.add_argument("--lstm_hidden2", type=int, default=64, help="第二层LSTM隐藏单元数")
+    parser.add_argument("--ff_hidden", type=int, default=8, help="前馈网络隐藏单元数")
+    parser.add_argument("--dropout_lstm", type=float, default=0.5, help="LSTM层Dropout比例")
+    parser.add_argument("--rbm_pool", type=str, default="last", choices=["last", "mean"], help="RBM-LSTM池化方式")
+    
+    # RBM预训练参数
+    parser.add_argument("--enable_rbm_pretrain", action="store_true", help="启用RBM预训练")
+    parser.add_argument("--rbm_epochs", type=int, default=1, help="RBM预训练轮数")
+    parser.add_argument("--rbm_lr", type=float, default=1e-2, help="RBM预训练学习率")
+    parser.add_argument("--rbm_cd_k", type=int, default=1, help="RBM对比散度步数")
 
     # 学习率调度器
     parser.add_argument("--scheduler", type=str, default="onecycle",
                         choices=["onecycle", "plateau", "cosine"], help="学习率调度器")
 
+    # 早停参数
+    parser.add_argument("--early_stopping", type=int, default=7, help="早停耐心值，0表示不使用早停")
+    
     # 其他
     parser.add_argument("--seed", type=int, default=42, help="随机种子")
     parser.add_argument("--device", type=str, default="auto", help="计算设备")
@@ -118,6 +144,26 @@ def create_model(args, input_size, seq_len):
             feat_expansion=args.feat_expansion,
             dropout=args.dropout
         )
+    elif args.model == "bilstm":
+        model = BiLSTMModel(
+            input_size=input_size, seq_len=seq_len,
+            lstm_hidden=args.lstm_hidden,
+            num_layers=args.lstm_layers,
+            dropout=args.dropout,
+            bidirectional=args.bidirectional,
+            mlp_hidden=args.mlp_hidden,
+            pool=args.lstm_pool
+        )
+    elif args.model == "rbmlstm":
+        model = EllefsenRBMLSTMModel(
+            input_size=input_size, seq_len=seq_len,
+            rbm_hidden=args.rbm_hidden,
+            lstm_hidden1=args.lstm_hidden1,
+            lstm_hidden2=args.lstm_hidden2,
+            ff_hidden=args.ff_hidden,
+            dropout_lstm=args.dropout_lstm,
+            pool=args.rbm_pool
+        )
     else:
         raise ValueError(f"未支持的模型类型: {args.model}")
     return model
@@ -130,12 +176,69 @@ def main():
 
     setup_seed(args.seed)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') if args.device == "auto" else torch.device(args.device)
+    
+    # 记录实验配置
+    logger.info("="*80)
+    logger.info("实验配置信息")
+    logger.info("="*80)
+    logger.info(f"模型类型: {args.model}")
+    logger.info(f"数据集: {args.fault}")
     logger.info(f"使用设备: {device}")
+    logger.info(f"随机种子: {args.seed}")
+    
+    # 基础训练参数
+    logger.info(f"批量大小: {args.batch_size}")
+    logger.info(f"训练轮数: {args.epochs}")
+    logger.info(f"学习率: {args.learning_rate}")
+    logger.info(f"权重衰减: {args.weight_decay}")
+    logger.info(f"学习率调度器: {args.scheduler}")
+    logger.info(f"早停耐心值: {args.early_stopping}")
+    
+    # 模型特定参数
+    if args.model == "rbmlstm":
+        logger.info("--- RBM-LSTM 特定参数 ---")
+        logger.info(f"RBM隐藏单元数: {args.rbm_hidden}")
+        logger.info(f"LSTM第一层隐藏单元数: {args.lstm_hidden1}")
+        logger.info(f"LSTM第二层隐藏单元数: {args.lstm_hidden2}")
+        logger.info(f"前馈网络隐藏单元数: {args.ff_hidden}")
+        logger.info(f"LSTM Dropout: {args.dropout_lstm}")
+        logger.info(f"池化方式: {args.rbm_pool}")
+        logger.info(f"启用RBM预训练: {args.enable_rbm_pretrain}")
+        if args.enable_rbm_pretrain:
+            logger.info(f"RBM预训练轮数: {args.rbm_epochs}")
+            logger.info(f"RBM学习率: {args.rbm_lr}")
+            logger.info(f"RBM对比散度步数: {args.rbm_cd_k}")
+    elif args.model == "transformer":
+        logger.info("--- Transformer 特定参数 ---")
+        logger.info(f"模型维度: {args.d_model}")
+        logger.info(f"注意力头数: {args.nhead}")
+        logger.info(f"Transformer层数: {args.num_layers}")
+        logger.info(f"前馈网络维度: {args.dim_feedforward}")
+        logger.info(f"池化方式: {args.pool}")
+        logger.info(f"Dropout: {args.dropout}")
+    elif args.model == "bilstm":
+        logger.info("--- BiLSTM 特定参数 ---")
+        logger.info(f"LSTM隐藏层维度: {args.lstm_hidden}")
+        logger.info(f"LSTM层数: {args.lstm_layers}")
+        logger.info(f"双向LSTM: {args.bidirectional}")
+        logger.info(f"MLP隐藏层维度: {args.mlp_hidden}")
+        logger.info(f"池化方式: {args.lstm_pool}")
+        logger.info(f"Dropout: {args.dropout}")
+    elif args.model == "tsmixer":
+        logger.info("--- TSMixer 特定参数 ---")
+        logger.info(f"TSMixer层数: {args.tsmixer_layers}")
+        logger.info(f"时间混合层扩展倍数: {args.time_expansion}")
+        logger.info(f"特征混合层扩展倍数: {args.feat_expansion}")
+        logger.info(f"Dropout: {args.dropout}")
+    
+    logger.info("="*80)
 
     # 数据集
     train_set, test_set = create_datasets(args)
-    train_loader = train_set.get_dataloader(batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=True)
-    val_loader = test_set.get_dataloader(batch_size=args.batch_size * 2, shuffle=False, num_workers=2, pin_memory=True)
+    # Windows系统使用num_workers=0避免多进程问题
+    num_workers = 0 if os.name == 'nt' else 2
+    train_loader = train_set.get_dataloader(batch_size=args.batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
+    val_loader = test_set.get_dataloader(batch_size=args.batch_size * 2, shuffle=False, num_workers=num_workers, pin_memory=True)
 
     # 模型
     model = create_model(args, train_set.n_features, train_set.window_size)
@@ -153,28 +256,118 @@ def main():
 
     model.compile(**compile_kwargs)
 
+    # RBM预训练（仅对rbmlstm模型且启用时执行）
+    if args.model == "rbmlstm" and args.enable_rbm_pretrain:
+        logger.info("="*60)
+        logger.info("开始RBM无监督预训练")
+        logger.info("="*60)
+        logger.info(f"预训练轮数: {args.rbm_epochs}")
+        logger.info(f"RBM学习率: {args.rbm_lr}")
+        logger.info(f"对比散度步数: {args.rbm_cd_k}")
+        logger.info(f"RBM架构: {train_set.n_features} -> {args.rbm_hidden}")
+        
+        rbm_start = datetime.now()
+        model.pretrain_rbm(
+            unlabeled_loader=train_loader,
+            epochs=args.rbm_epochs,
+            lr_rbm=args.rbm_lr,
+            cd_k=args.rbm_cd_k,
+            device=device
+        )
+        rbm_end = datetime.now()
+        
+        logger.info(f"RBM预训练完成，耗时: {rbm_end - rbm_start}")
+        logger.info("="*60)
+
     # 训练
     logger.info("开始训练...")
+    if args.early_stopping > 0:
+        logger.info(f"启用早停机制，耐心值: {args.early_stopping}")
+    else:
+        logger.info("未启用早停机制")
+    
     start = datetime.now()
-    model.train_model(train_loader, val_loader=val_loader, epochs=args.epochs, test_dataset_for_last=test_set)
+    training_results = model.train_model(train_loader, val_loader=val_loader, epochs=args.epochs, 
+                                        test_dataset_for_last=test_set, early_stopping_patience=args.early_stopping)
     end = datetime.now()
 
-    # 评估
+    # 评估 - 使用训练返回的最佳结果
     logger.info("评估模型...")
-    results = model.evaluate(val_loader)
-
-    # 保存模型
-    model_path = f"{args.model}_{args.fault}.pth"
-    if hasattr(model, "model"):
-        torch.save(model.model.state_dict(), model_path)
+    if training_results.get("early_stopped", False):
+        # 早停情况：显示最佳验证结果
+        best_rmse = training_results.get("best_val_rmse", float('nan'))
+        logger.info(f"最优验证结果 (早停): RMSE = {best_rmse:.4f}")
+        results = {"rmse": best_rmse, "source": "best_validation"}
+        
+        # 记录训练过程中的最佳指标
+        if hasattr(model, 'best_metrics') and model.best_metrics:
+            logger.info("最优训练指标详情:")
+            for key, value in model.best_metrics.items():
+                if 'rmse' in key or 'score' in key:
+                    logger.info(f"  {key}: {value:.4f}")
     else:
-        torch.save(model.state_dict(), model_path)
-    logger.info(f"模型已保存到: {model_path}")
+        # 正常完成：重新评估最终模型
+        results = model.evaluate(val_loader)
+        results["source"] = "final_evaluation"
 
-    logger.info(f"最终结果: {results}")
+    # 跳过模型保存
+
+    # 记录最终结果
+    logger.info("="*80)
+    logger.info("实验结果总结")
+    logger.info("="*80)
+    
+    # 根据结果来源显示不同的信息
+    if results.get("source") == "best_validation":
+        logger.info(f"最优结果 (早停): RMSE = {results['rmse']:.6f} cycles")
+    else:
+        logger.info(f"最终结果: RMSE = {results['rmse']:.6f} cycles")
+    
+    # 尝试获取并记录详细的验证指标
+    if hasattr(model, 'best_metrics') and model.best_metrics:
+        logger.info("详细验证指标:")
+        metrics_to_log = ['val_rmse_global', 'val_rmse_last', 'val_score_last', 'train_rmse']
+        for metric in metrics_to_log:
+            if metric in model.best_metrics:
+                value = model.best_metrics[metric]
+                if 'rmse' in metric:
+                    logger.info(f"  {metric}: {value:.4f} cycles")
+                elif 'score' in metric:
+                    logger.info(f"  {metric}: {value:.2f}")
+                else:
+                    logger.info(f"  {metric}: {value:.4f}")
+    
+    # 记录训练信息
     logger.info(f"训练耗时: {end-start}")
+    if training_results.get("early_stopped", False):
+        best_epoch = training_results.get("best_epoch", "未知")
+        logger.info(f"早停触发: 在第 {best_epoch} 轮达到最佳结果")
+    
+    # 记录实验标识信息
+    logger.info(f"实验时间: {start.strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"模型配置: {args.model} + {args.fault}")
+    
+    # 模型特定的架构摘要
+    if args.model == "rbmlstm":
+        config_summary = f"RBM{args.rbm_hidden}-LSTM{args.lstm_hidden1}x{args.lstm_hidden2}-FF{args.ff_hidden}"
+        if args.enable_rbm_pretrain:
+            config_summary += f"-PreTrain{args.rbm_epochs}e"
+        logger.info(f"架构摘要: {config_summary}")
+    elif args.model == "tsmixer":
+        config_summary = f"TSMixer-L{args.tsmixer_layers}-T{args.time_expansion}x{args.feat_expansion}-D{args.dropout}"
+        logger.info(f"架构摘要: {config_summary}")
+    elif args.model == "transformer":
+        config_summary = f"Transformer-D{args.d_model}-H{args.nhead}-L{args.num_layers}-FF{args.dim_feedforward}"
+        logger.info(f"架构摘要: {config_summary}")
+    elif args.model == "bilstm":
+        direction = "Bi" if args.bidirectional else "Uni"
+        config_summary = f"{direction}LSTM-H{args.lstm_hidden}-L{args.lstm_layers}-MLP{args.mlp_hidden}"
+        logger.info(f"架构摘要: {config_summary}")
+    
+    logger.info("="*80)
+    
     if log_path:
-        logger.info(f"日志文件: {log_path}")
+        logger.info(f"完整日志文件: {log_path}")
 
 
 if __name__ == "__main__":

@@ -20,6 +20,7 @@ class BaseRULModel(ABC):
         self.model: Optional[nn.Module] = None
         self.optimizer: Optional[torch.optim.Optimizer] = None
         self.scheduler: Optional[Any] = None
+        self.best_metrics: Dict[str, float] = {}  # 存储最佳训练指标
 
     # --------- 必须由子类实现的方法 ---------
     @abstractmethod
@@ -34,11 +35,20 @@ class BaseRULModel(ABC):
 
     def train_model(self, train_loader, val_loader=None,
                criterion: Optional[Any] = None, epochs: int = 20,
-               test_dataset_for_last=None):
-        """默认训练流程，子类可重写"""
+               test_dataset_for_last=None, early_stopping_patience=7):
+        """默认训练流程，子类可重写
+        
+        Returns:
+            dict: 包含最佳验证性能的字典，如果启用早停则返回最佳结果，否则返回最终结果
+        """
         if criterion is None:
             criterion = nn.MSELoss()
 
+        # 早停机制
+        best_val_loss = float('inf')
+        patience_counter = 0
+        best_epoch = 0
+        
         self.model.train()
         for epoch in range(1, epochs + 1):
             running_loss = 0.0
@@ -73,6 +83,10 @@ class BaseRULModel(ABC):
             if test_dataset_for_last is not None:
                 val_rmse_last, val_score_last = self.evaluate_last_window(test_dataset_for_last)
             
+            # 确保模型回到训练模式（重要：LSTM等RNN模型需要这个）
+            # 在验证后重新设置训练模式，对所有模型都是安全的
+            self.model.train()
+            
             # 获取学习率
             lr = self.optimizer.param_groups[0]["lr"] if self.optimizer else 0.0
             
@@ -85,6 +99,60 @@ class BaseRULModel(ABC):
                 metric = val_rmse_last if not torch.isnan(torch.tensor(val_rmse_last)) else val_rmse_global
                 if not torch.isnan(torch.tensor(metric)):
                     self.scheduler.step(metric)
+            
+            # 早停机制（仅在early_stopping_patience > 0时启用）
+            if early_stopping_patience > 0:
+                current_val_loss = val_rmse_last if not torch.isnan(torch.tensor(val_rmse_last)) else val_rmse_global
+                if not torch.isnan(torch.tensor(current_val_loss)):
+                    if current_val_loss < best_val_loss:
+                        best_val_loss = current_val_loss
+                        patience_counter = 0
+                        best_epoch = epoch
+                        
+                        # 保存最佳指标
+                        self.best_metrics = {
+                            'train_rmse': train_rmse,
+                            'val_rmse_global': val_rmse_global,
+                            'val_rmse_last': val_rmse_last,
+                            'val_score_last': val_score_last,
+                            'best_epoch': epoch,
+                            'learning_rate': lr
+                        }
+                        
+                        print(f"📈 New best validation RMSE: {best_val_loss:.4f}")
+                    else:
+                        patience_counter += 1
+                        if patience_counter >= early_stopping_patience:
+                            print(f" Early stopping triggered after {epoch} epochs (patience: {early_stopping_patience})")
+                            print(f" Best validation RMSE: {best_val_loss:.4f}")
+                            break
+        
+        # 返回最佳验证结果
+        if early_stopping_patience > 0 and best_val_loss != float('inf'):
+            return {
+                "best_val_rmse": best_val_loss, 
+                "early_stopped": True,
+                "best_epoch": best_epoch
+            }
+        else:
+            # 如果没有早停或没有验证数据，返回最终验证结果
+            final_results = {}
+            if val_loader is not None:
+                final_val_results = self.evaluate(val_loader)
+                final_results["final_val_rmse"] = final_val_results.get('rmse', float('nan'))
+                
+                # 保存最终指标
+                self.best_metrics = {
+                    'train_rmse': train_rmse,
+                    'val_rmse_global': final_val_results.get('rmse', float('nan')),
+                    'val_rmse_last': val_rmse_last,
+                    'val_score_last': val_score_last,
+                    'final_epoch': epochs,
+                    'learning_rate': lr
+                }
+                
+            final_results["early_stopped"] = False
+            return final_results
 
     def evaluate(self, test_loader) -> Dict[str, float]:
         """默认测试集评估"""
@@ -122,27 +190,28 @@ class BaseRULModel(ABC):
             val_score_last: 验证集最后窗口PHM08 Score
             lr: 当前学习率
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         # 格式化数值显示
         def format_metric(val):
             if np.isnan(val) or val == float('nan'):
                 return "N/A"
             return f"{val:.2f}"
         
-        print(f"[Epoch {epoch:3d}/{total_epochs}] "
-              f"train_rmse={format_metric(train_rmse)} | "
-              f"val_rmse(global)={format_metric(val_rmse_global)} cycles | "
-              f"val_rmse(last)={format_metric(val_rmse_last)} cycles | "
-              f"val_score(last)={format_metric(val_score_last)} | "
-              f"lr={lr:.2e}")
+        # 详细的日志格式
+        metrics_msg = (f"[Epoch {epoch:3d}/{total_epochs}] "
+                      f"train_rmse={format_metric(train_rmse)} | "
+                      f"val_rmse(global)={format_metric(val_rmse_global)} cycles | "
+                      f"val_rmse(last)={format_metric(val_rmse_last)} cycles | "
+                      f"val_score(last)={format_metric(val_score_last)} | "
+                      f"lr={lr:.2e}")
+        
+        # 同时输出到控制台和日志文件
+        print(metrics_msg)
+        logger.info(metrics_msg)
 
-    def save(self, path: str):
-        """保存模型权重"""
-        torch.save(self.model.state_dict(), path)
-
-    def load(self, path: str):
-        """加载模型权重"""
-        self.model.load_state_dict(torch.load(path, map_location=self.device))
-        self.model.to(self.device)
+    # 移除模型保存和加载功能
 
     # --------- 评估相关工具函数 ---------
     @staticmethod

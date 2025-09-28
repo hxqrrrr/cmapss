@@ -152,9 +152,10 @@ class TSMixerModel(BaseRULModel):
                 max_lr=learning_rate,
                 epochs=epochs,
                 steps_per_epoch=steps_per_epoch,
-                pct_start=0.2,
-                div_factor=10,
-                final_div_factor=10,
+                pct_start=0.3,  # 更长的预热期
+                div_factor=25,  # 更低的初始学习率
+                final_div_factor=100,  # 更低的最终学习率
+                anneal_strategy='cos'  # 余弦退火
             )
         elif scheduler == "cosine":
             self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
@@ -166,3 +167,25 @@ class TSMixerModel(BaseRULModel):
             )
         else:
             self.scheduler = None
+    
+    def log_training_metrics(self, epoch, epochs, train_rmse, val_rmse_global, 
+                           val_rmse_last, val_score_last, lr):
+        """详细的训练指标日志记录 - 与之前的格式保持一致"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # 格式化指标显示
+        def format_metric(val):
+            if torch.isnan(torch.tensor(val)) or val == float('nan'):
+                return "N/A"
+            return f"{val:.2f}"
+        
+        # 详细的日志格式，与之前保持一致
+        metrics_msg = (f"[Epoch {epoch:3d}/{epochs}] "
+                      f"train_rmse={format_metric(train_rmse)} | "
+                      f"val_rmse(global)={format_metric(val_rmse_global)} cycles | "
+                      f"val_rmse(last)={format_metric(val_rmse_last)} cycles | "
+                      f"val_score(last)={format_metric(val_score_last)} | "
+                      f"lr={lr:.2e}")
+        
+        logger.info(metrics_msg)
