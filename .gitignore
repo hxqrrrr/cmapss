@@ -132,3 +132,4 @@ git_setup.sh
 # 系统文件
 desktop.ini
 .directory
+*.zip
