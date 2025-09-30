@@ -28,6 +28,533 @@ def main():
     
     experiments = [
         
+        # ============================================================================
+        # CNN-TSMixer vs TSMixer 对比实验 - 目标超越 11.39 RMSE (TSMixer最佳)
+        # ============================================================================
+        
+        # {
+        #     "name": "🎯 CNN-TSMixer-1: 对标冠军配置",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer", 
+        #            "--fault", "FD001", 
+        #            "--batch_size", "384",           # 对标TSMixer冠军
+        #            "--epochs", "50",
+        #            "--learning_rate", "0.005",      # 对标高学习率
+        #            "--weight_decay", "0.00005",     # 对标低权重衰减
+        #            # CNN-TSMixer特定参数
+        #            "--patch", "5",                  # 适中patch size
+        #            "--cnn_channels", "64",
+        #            "--cnn_layers", "2",             # 轻量CNN前端
+        #            "--cnn_kernel", "5",
+        #            "--d_model", "128",
+        #            "--depth", "4",                  # 对标TSMixer层数
+        #            "--token_mlp_dim", "256",
+        #            "--channel_mlp_dim", "128",
+        #            "--dropout", "0.05",             # 对标极低dropout
+        #            "--cnn_pool", "mean",
+        #            "--scheduler", "plateau",
+        #            "--early_stopping", "10"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🚀 CNN-TSMixer-2: 增强CNN前端",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer", 
+        #            "--fault", "FD001", 
+        #            "--batch_size", "256",           # 适中批量适应更复杂模型
+        #            "--epochs", "60",
+        #            "--learning_rate", "0.003",      # 稍低学习率适应复杂度
+        #            "--weight_decay", "0.0001",
+        #            # 强化CNN特征提取
+        #            "--patch", "4",                  # 更细粒度patch
+        #            "--cnn_channels", "80",          # 更多CNN通道
+        #            "--cnn_layers", "3",             # 更深CNN
+        #            "--cnn_kernel", "7",             # 更大卷积核
+        #            "--d_model", "160",              # 更大模型维度
+        #            "--depth", "4",
+        #            "--token_mlp_dim", "320",
+        #            "--channel_mlp_dim", "160",
+        #            "--dropout", "0.08",             # 适当增加正则化
+        #            "--cnn_pool", "weighted",        # 关注后期特征
+        #            "--scheduler", "plateau",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "⚡ CNN-TSMixer-3: 高效轻量版",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer", 
+        #            "--fault", "FD001", 
+        #            "--batch_size", "512",           # 大批量快速训练
+        #            "--epochs", "40",
+        #            "--learning_rate", "0.006",      # 更高学习率快速收敛
+        #            "--weight_decay", "0.00003",     # 更低权重衰减
+        #            # 轻量高效配置
+        #            "--patch", "8",                  # 大patch减少计算
+        #            "--cnn_channels", "48",          # 轻量CNN
+        #            "--cnn_layers", "2",
+        #            "--cnn_kernel", "3",             # 小卷积核
+        #            "--d_model", "96",               # 小模型维度
+        #            "--depth", "3",                  # 浅层TSMixer
+        #            "--token_mlp_dim", "192",
+        #            "--channel_mlp_dim", "96",
+        #            "--dropout", "0.03",             # 极低dropout
+        #            "--cnn_pool", "last",            # 关注最终状态
+        #            "--scheduler", "plateau",
+        #            "--early_stopping", "8"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🔥 CNN-TSMixer-4: 深度混合架构",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer", 
+        #            "--fault", "FD001", 
+        #            "--batch_size", "192",           # 中等批量适应深层网络
+        #            "--epochs", "80",
+        #            "--learning_rate", "0.002",      # 深层网络保守学习率
+        #            "--weight_decay", "0.0002",
+        #            # 深层混合架构
+        #            "--patch", "5",
+        #            "--cnn_channels", "96",          # 丰富CNN特征
+        #            "--cnn_layers", "4",             # 深层CNN
+        #            "--cnn_kernel", "5",
+        #            "--d_model", "192",              # 大模型容量
+        #            "--depth", "6",                  # 深层TSMixer
+        #            "--token_mlp_dim", "384",
+        #            "--channel_mlp_dim", "192",
+        #            "--dropout", "0.10",             # 适中正则化
+        #            "--cnn_pool", "weighted",
+        #            "--scheduler", "onecycle",       # 深层网络用onecycle
+        #            "--early_stopping", "15"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🎨 CNN-TSMixer-5: 精细调优版",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer", 
+        #            "--fault", "FD001", 
+        #            "--batch_size", "320",           # 精心选择的批量大小
+        #            "--epochs", "70",
+        #            "--learning_rate", "0.0035",     # 精调学习率
+        #            "--weight_decay", "0.00008",     # 精调权重衰减
+        #            # 精细调优参数
+        #            "--patch", "6",                  # 平衡的patch size
+        #            "--cnn_channels", "72",          # 精调通道数
+        #            "--cnn_layers", "3",
+        #            "--cnn_kernel", "6",             # 偶数卷积核
+        #            "--d_model", "144",              # 144 = 72 * 2
+        #            "--depth", "5",                  # 中等深度
+        #            "--token_mlp_dim", "288",        # 144 * 2
+        #            "--channel_mlp_dim", "144",
+        #            "--dropout", "0.06",             # 精调dropout
+        #            "--cnn_pool", "mean",
+        #            "--scheduler", "plateau",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🏆 CNN-TSMixer-6: 极限挑战版",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer", 
+        #            "--fault", "FD001", 
+        #            "--batch_size", "128",           # 小批量支持大模型
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.001",      # 保守学习率长期训练
+        #            "--weight_decay", "0.0003",
+        #            # 极限配置
+        #            "--patch", "3",                  # 最细粒度
+        #            "--cnn_channels", "128",         # 最多CNN通道
+        #            "--cnn_layers", "4",             # 深层CNN
+        #            "--cnn_kernel", "7",             # 大卷积核
+        #            "--d_model", "256",              # 最大模型维度
+        #            "--depth", "8",                  # 最深TSMixer
+        #            "--token_mlp_dim", "512",        # 最大MLP
+        #            "--channel_mlp_dim", "256",
+        #            "--dropout", "0.12",             # 强正则化防过拟合
+        #            "--cnn_pool", "weighted",
+        #            "--scheduler", "cosine",         # 长期训练用cosine
+        #            "--early_stopping", "20"
+        #            ]
+        # },
+
+        # ============================================================================
+        # 门控CNN-TSMixer实验 - 自适应特征融合架构
+        # ============================================================================
+        
+        # {
+        #     "name": "🔥 门控CNN-TSMixer-1: 对标TSMixer冠军",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer_gated", 
+        #            "--fault", "FD001", 
+        #            "--batch_size", "384",           # 对标TSMixer冠军配置
+        #            "--epochs", "50",
+        #            "--learning_rate", "0.005",      # 高学习率
+        #            "--weight_decay", "0.00005",     # 极低权重衰减
+        #            # 门控CNN-TSMixer参数
+        #            "--patch", "5",                  # 适中patch
+        #            "--cnn_channels", "64",          # 标准CNN通道
+        #            "--cnn_layers", "2",             # 轻量CNN前端
+        #            "--cnn_kernel", "3",             # 小卷积核保持长度
+        #            "--d_model", "128",
+        #            "--depth", "4",                  # 对标TSMixer层数
+        #            "--token_mlp_dim", "256",
+        #            "--channel_mlp_dim", "128",
+        #            "--dropout", "0.05",             # 极低dropout
+        #            "--cnn_pool", "mean",
+        #            "--use_groupnorm",               # 使用GroupNorm
+        #            "--gn_groups", "8",              # 8组GroupNorm
+        #            "--scheduler", "plateau",
+        #            "--early_stopping", "10"
+        #            ]
+        # },
+        
+        
+
+        # ============================================================================
+        # 门控CNN-TSMixer最佳配置 - 全数据集测试 (基于FD001最优结果11.23 RMSE)
+        # ============================================================================
+        
+        # {
+        #     "name": "🥇 门控CNN-TSMixer最佳配置 + FD001",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer_gated", 
+        #            "--fault", "FD001", 
+        #            "--batch_size", "384",           # 最佳配置
+        #            "--epochs", "50",
+        #            "--learning_rate", "0.005",      # 高学习率
+        #            "--weight_decay", "0.00005",     # 极低权重衰减
+        #            # 门控CNN-TSMixer最佳参数
+        #            "--patch", "5",                  # 最佳patch size
+        #            "--cnn_channels", "64",          # 最佳CNN通道数
+        #            "--cnn_layers", "2",             # 最佳CNN层数
+        #            "--cnn_kernel", "3",             # 最佳卷积核大小
+        #            "--d_model", "128",              # 最佳模型维度
+        #            "--depth", "4",                  # 最佳TSMixer层数
+        #            "--token_mlp_dim", "256",        # 最佳Token MLP维度
+        #            "--channel_mlp_dim", "128",      # 最佳Channel MLP维度
+        #            "--dropout", "0.05",             # 最佳dropout
+        #            "--cnn_pool", "mean",            # 最佳池化方式
+        #            "--use_groupnorm",               # 使用GroupNorm
+        #            "--gn_groups", "8",              # 最佳GroupNorm分组
+        #            "--scheduler", "plateau",        # 最佳调度器
+        #            "--early_stopping", "10"         # 最佳早停策略
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🥇 门控CNN-TSMixer最佳配置 + FD002",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer_gated", 
+        #            "--fault", "FD002", 
+        #            "--batch_size", "256",           # FD002复杂数据适当减小批量
+        #            "--epochs", "60",                # FD002需要更多训练轮数
+        #            "--learning_rate", "0.003",      # FD002用稍低学习率
+        #            "--weight_decay", "0.0001",      # FD002增加权重衰减
+        #            # 门控CNN-TSMixer最佳参数
+        #            "--patch", "5",                  
+        #            "--cnn_channels", "64",          
+        #            "--cnn_layers", "2",             
+        #            "--cnn_kernel", "3",             
+        #            "--d_model", "128",              
+        #            "--depth", "4",                  
+        #            "--token_mlp_dim", "256",        
+        #            "--channel_mlp_dim", "128",      
+        #            "--dropout", "0.08",             # FD002增加dropout防过拟合
+        #            "--cnn_pool", "mean",            
+        #            "--use_groupnorm",               
+        #            "--gn_groups", "8",              
+        #            "--scheduler", "plateau",        
+        #            "--early_stopping", "12"         # FD002增加早停耐心值
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🥇 门控CNN-TSMixer最佳配置 + FD003",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer_gated", 
+        #            "--fault", "FD003", 
+        #            "--batch_size", "384",           # FD003与FD001类似，使用相同配置
+        #            "--epochs", "50",
+        #            "--learning_rate", "0.005",      
+        #            "--weight_decay", "0.00005",     
+        #            # 门控CNN-TSMixer最佳参数
+        #            "--patch", "5",                  
+        #            "--cnn_channels", "64",          
+        #            "--cnn_layers", "2",             
+        #            "--cnn_kernel", "3",             
+        #            "--d_model", "128",              
+        #            "--depth", "4",                  
+        #            "--token_mlp_dim", "256",        
+        #            "--channel_mlp_dim", "128",      
+        #            "--dropout", "0.05",             
+        #            "--cnn_pool", "mean",            
+        #            "--use_groupnorm",               
+        #            "--gn_groups", "8",              
+        #            "--scheduler", "plateau",        
+        #            "--early_stopping", "10"         
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🥇 门控CNN-TSMixer最佳配置 + FD004",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer_gated", 
+        #            "--fault", "FD004", 
+        #            "--batch_size", "192",           # FD004最复杂，进一步减小批量
+        #            "--epochs", "80",                # FD004需要最多训练轮数
+        #            "--learning_rate", "0.002",      # FD004用更保守学习率
+        #            "--weight_decay", "0.0002",      # FD004增加更多权重衰减
+        #            # 门控CNN-TSMixer最佳参数
+        #            "--patch", "5",                  
+        #            "--cnn_channels", "64",          
+        #            "--cnn_layers", "2",             
+        #            "--cnn_kernel", "3",             
+        #            "--d_model", "128",              
+        #            "--depth", "4",                  
+        #            "--token_mlp_dim", "256",        
+        #            "--channel_mlp_dim", "128",      
+        #            "--dropout", "0.10",             # FD004最高dropout防过拟合
+        #            "--cnn_pool", "mean",            
+        #            "--use_groupnorm",               
+        #            "--gn_groups", "8",              
+        #            "--scheduler", "plateau",        
+        #            "--early_stopping", "15"         # FD004最高早停耐心值
+        #            ]
+        # },
+
+        # # ============================================================================
+        # # FD002专项优化实验 - 针对多工况单故障模式的性能提升
+        # # ============================================================================
+        
+        # {
+        #     "name": "🎯 FD002优化-1: 强正则化配置",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer_gated", 
+        #            "--fault", "FD002", 
+        #            "--batch_size", "128",           # 减小批量提升泛化
+        #            "--epochs", "80",                # 更多轮数
+        #            "--learning_rate", "0.002",      # 更保守学习率
+        #            "--weight_decay", "0.0003",      # 更强权重衰减
+        #            # 强正则化参数
+        #            "--patch", "5",                  
+        #            "--cnn_channels", "64",          
+        #            "--cnn_layers", "2",             
+        #            "--cnn_kernel", "3",             
+        #            "--d_model", "128",              
+        #            "--depth", "4",                  
+        #            "--token_mlp_dim", "256",        
+        #            "--channel_mlp_dim", "128",      
+        #            "--dropout", "0.15",             # 大幅增加dropout
+        #            "--cnn_pool", "mean",            
+        #            "--use_groupnorm",               
+        #            "--gn_groups", "8",              
+        #            "--scheduler", "plateau",        
+        #            "--early_stopping", "15"         # 更大耐心值
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🚀 FD002优化-2: 增强CNN特征提取",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer_gated", 
+        #            "--fault", "FD002", 
+        #            "--batch_size", "192",           # 适中批量
+        #            "--epochs", "70",                
+        #            "--learning_rate", "0.0025",     # 适中学习率
+        #            "--weight_decay", "0.0002",      
+        #            # 增强CNN配置
+        #            "--patch", "4",                  # 更细粒度patch
+        #            "--cnn_channels", "96",          # 更多CNN通道
+        #            "--cnn_layers", "3",             # 更深CNN层
+        #            "--cnn_kernel", "3",             
+        #            "--d_model", "160",              # 更大模型容量
+        #            "--depth", "5",                  # 更深TSMixer
+        #            "--token_mlp_dim", "320",        
+        #            "--channel_mlp_dim", "160",      
+        #            "--dropout", "0.12",             # 适中dropout
+        #            "--cnn_pool", "weighted",        # 加权池化关注后期
+        #            "--use_groupnorm",               
+        #            "--gn_groups", "12",             # 更多GroupNorm组
+        #            "--scheduler", "onecycle",       # OneCycle调度器
+        #            "--early_stopping", "12"         
+        #            ]
+        # },
+        
+        # {
+        #     "name": "⚡ FD002优化-3: 稳定训练配置",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer_gated", 
+        #            "--fault", "FD002", 
+        #            "--batch_size", "160",           # 中小批量平衡
+        #            "--epochs", "100",               # 充足训练轮数
+        #            "--learning_rate", "0.0015",     # 更稳定学习率
+        #            "--weight_decay", "0.0001",      
+        #            # 稳定训练参数
+        #            "--patch", "6",                  # 稍大patch减少token数
+        #            "--cnn_channels", "80",          # 适中CNN通道
+        #            "--cnn_layers", "2",             
+        #            "--cnn_kernel", "3",             
+        #            "--d_model", "144",              # 稍大模型维度
+        #            "--depth", "4",                  
+        #            "--token_mlp_dim", "288",        
+        #            "--channel_mlp_dim", "144",      
+        #            "--dropout", "0.10",             
+        #            "--cnn_pool", "mean",            
+        #            "--use_groupnorm",               
+        #            "--gn_groups", "10",             # 适中GroupNorm组数
+        #            "--scheduler", "cosine",         # Cosine调度器长期稳定
+        #            "--early_stopping", "20"         # 更大耐心值防早停
+        #            ]
+        # },
+
+        # ============================================================================
+        # FD004高级优化配置 - 基于token数量和时间分辨率的精细调优（多工况+多故障）
+        # ============================================================================
+        
+        # {
+        #     "name": "🎯 FD004-Stable-Conditioned: 稳定10token配置",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer_gated", 
+        #            "--fault", "FD004", 
+        #            "--batch_size", "192",           # FD004更复杂，减小批量
+        #            "--epochs", "80",                # FD004需要更多训练轮数
+        #            "--learning_rate", "0.001",      # FD004用更保守学习率
+        #            "--weight_decay", "0.0002",      # FD004增加权重衰减
+        #            # 稳定10token配置 (50/5=10 tokens, FD004窗口=50)
+        #            "--patch", "5",                  # FD004窗口50，patch=5获得10个tokens
+        #            "--cnn_channels", "64",
+        #            "--cnn_layers", "2",
+        #            "--cnn_kernel", "3",
+        #            "--d_model", "160",              # 适中模型维度
+        #            "--depth", "5",                  # 适中深度
+        #            "--token_mlp_dim", "320",
+        #            "--channel_mlp_dim", "160",
+        #            "--dropout", "0.15",             # FD004需要更强正则化
+        #            "--cnn_pool", "weighted",        # 加权池化关注后期
+        #            "--use_groupnorm",
+        #            "--gn_groups", "8",
+        #            "--scheduler", "cosine",         # 长期稳定调度
+        #            "--early_stopping", "15"         # FD004需要更大耐心值
+        #            ]
+        # },
+        
+        # ============================================================================
+        # TSMixer + FD004 专项优化配置 - 针对最复杂数据集的参数调优
+        # ============================================================================
+        
+        {
+            "name": "🎯 TSMixer + FD004: 强正则化稳定配置",
+            "cmd": ["python", "train.py", 
+                   "--model", "tsmixer", 
+                   "--fault", "FD004", 
+                   "--batch_size", "128",           # FD004复杂数据用小批量
+                   "--epochs", "100",               # FD004需要充分训练
+                   "--learning_rate", "0.001",      # FD004用保守学习率
+                   "--weight_decay", "0.0003",      # FD004需要强权重衰减
+                   "--tsmixer_layers", "5",         # 适中层数平衡容量和过拟合
+                   "--time_expansion", "6",         # 较大时间扩展处理复杂时序
+                   "--feat_expansion", "4",         # 适中特征扩展
+                   "--dropout", "0.20",             # FD004需要强正则化防过拟合
+                   "--scheduler", "cosine",         # 长期稳定训练
+                   "--early_stopping", "15"         # FD004需要更大耐心值
+                   ]
+        },
+        
+        {
+            "name": "🚀 TSMixer + FD004: 深层网络配置",
+            "cmd": ["python", "train.py", 
+                   "--model", "tsmixer", 
+                   "--fault", "FD004", 
+                   "--batch_size", "96",            # 更小批量适应深层网络
+                   "--epochs", "120",               # 深层网络需要更多训练
+                   "--learning_rate", "0.0008",     # 深层网络用更保守学习率
+                   "--weight_decay", "0.0004",      # 深层网络增加权重衰减
+                   "--tsmixer_layers", "8",         # 更深的网络
+                   "--time_expansion", "8",         # 更大时间扩展
+                   "--feat_expansion", "5",         # 更大特征扩展
+                   "--dropout", "0.25",             # 深层网络需要更强正则化
+                   "--scheduler", "onecycle",       # 深层网络适合OneCycle
+                   "--early_stopping", "20"         # 深层网络需要更多耐心
+                   ]
+        },
+        
+        {
+            "name": "⚡ TSMixer + FD004: 高效轻量配置",
+            "cmd": ["python", "train.py", 
+                   "--model", "tsmixer", 
+                   "--fault", "FD004", 
+                   "--batch_size", "192",           # 轻量模型可用较大批量
+                   "--epochs", "80",                # 轻量模型训练更快
+                   "--learning_rate", "0.0015",     # 轻量模型可用稍高学习率
+                   "--weight_decay", "0.0002",      # 适中权重衰减
+                   "--tsmixer_layers", "3",         # 较浅网络
+                   "--time_expansion", "4",         # 适中时间扩展
+                   "--feat_expansion", "3",         # 适中特征扩展
+                   "--dropout", "0.15",             # 适中正则化
+                   "--scheduler", "plateau",        # 快速响应调度器
+                   "--early_stopping", "12"         # 适中早停耐心
+                   ]
+        },
+        
+        {
+            "name": "🚀 FD004-Deeper-Token12: 深度12token配置",
+            "cmd": ["python", "train.py", 
+                   "--model", "cnn_tsmixer_gated", 
+                   "--fault", "FD004", 
+                   "--batch_size", "160",           # FD004深层模型用更小批量
+                   "--epochs", "90",                # FD004需要更多轮数
+                   "--learning_rate", "0.0008",     # FD004深层模型更保守学习率
+                   "--weight_decay", "0.0002",      # 增加权重衰减
+                   # 深度12token配置 (50//4=12 tokens, T_eff=48)
+                   "--patch", "4",                  # 更细粒度patch获得12个tokens
+                   "--cnn_channels", "80",          # 更多CNN通道
+                   "--cnn_layers", "3",             # 更深CNN层
+                   "--cnn_kernel", "3",
+                   "--d_model", "192",              # 更大模型容量
+                   "--depth", "6",                  # 更深TSMixer
+                   "--token_mlp_dim", "384",
+                   "--channel_mlp_dim", "192",
+                   "--dropout", "0.18",             # FD004深层模型需要更强正则化
+                   "--cnn_pool", "weighted",        # 末端敏感池化
+                   "--use_groupnorm",
+                   "--gn_groups", "10",             # 更多GroupNorm组
+                   "--scheduler", "cosine",
+                   "--early_stopping", "18"         # FD004深层模型需要更多耐心
+                   ]
+        },
+        
+        {
+            "name": "⚡ FD004-Light-Fast: 轻量16token高效配置",
+            "cmd": ["python", "train.py", 
+                   "--model", "cnn_tsmixer_gated", 
+                   "--fault", "FD004", 
+                   "--batch_size", "224",           # FD004轻量版适中批量
+                   "--epochs", "70",                # FD004需要更多轮数
+                   "--learning_rate", "0.0012",     # FD004稍保守学习率
+                   "--weight_decay", "0.0002",      # FD004增加正则化
+                   # 轻量16token配置 (50//3=16 tokens, T_eff=48)
+                   "--patch", "3",                  # 小patch获得16个tokens
+                   "--cnn_channels", "64",          # 轻量CNN通道
+                   "--cnn_layers", "2",
+                   "--cnn_kernel", "3",
+                   "--d_model", "144",              # 平衡的模型维度
+                   "--depth", "5",                  # 适中深度
+                   "--token_mlp_dim", "288",
+                   "--channel_mlp_dim", "144",
+                   "--dropout", "0.20",             # FD004轻量模型需要更强dropout
+                   "--cnn_pool", "weighted",
+                   "--use_groupnorm",
+                   "--gn_groups", "8",
+                   "--scheduler", "plateau",        # 快速响应的plateau调度
+                   "--early_stopping", "15"         # FD004需要更多耐心
+                   ]
+        },
+        
         # # TSMixer实验
         # {
         #     "name": "TSMixer + FD001 (OneCycle + 早停)",
@@ -418,60 +945,88 @@ def main():
         # 前三名最优配置 - 基于13个实验的性能分析
         # ============================================================================
         
-        {
-            "name": "🥇 TSMixer冠军配置 (11.46 RMSE)",
-            "cmd": ["python", "train.py", 
-                   "--model", "tsmixer", 
-                   "--fault", "FD001", 
-                   "--batch_size", "384",           # 大批量训练
-                   "--epochs", "50",
-                   "--learning_rate", "0.005",      # 极高学习率
-                   "--weight_decay", "0.00005",     # 极低权重衰减
-                   "--tsmixer_layers", "4",         # 轻量网络
-                   "--time_expansion", "3",         # 适中时间扩展
-                   "--feat_expansion", "4",         # 适中特征扩展
-                   "--dropout", "0.05",             # 极低dropout
-                   "--scheduler", "plateau",        # 平台调度器
-                   "--early_stopping", "10"          # 激进早停
-                   ]
-        },
+        # {
+        #     "name": "🥇 TSMixer冠军配置 (11.46 RMSE)",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "tsmixer", 
+        #            "--fault", "FD001", 
+        #            "--batch_size", "384",           # 大批量训练
+        #            "--epochs", "50",
+        #            "--learning_rate", "0.005",      # 极高学习率
+        #            "--weight_decay", "0.00005",     # 极低权重衰减
+        #            "--tsmixer_layers", "4",         # 轻量网络
+        #            "--time_expansion", "3",         # 适中时间扩展
+        #            "--feat_expansion", "4",         # 适中特征扩展
+        #            "--dropout", "0.05",             # 极低dropout
+        #            "--scheduler", "plateau",        # 平台调度器
+        #            "--early_stopping", "10"          # 激进早停
+        #            ]
+        # },
         
-        {
-            "name": "🥈 TSMixer亚军配置 (11.69 RMSE)",
-            "cmd": ["python", "train.py", 
-                   "--model", "tsmixer", 
-                   "--fault", "FD001", 
-                   "--batch_size", "512",           # 超大批量
-                   "--epochs", "60",
-                   "--learning_rate", "0.004",      # 高学习率
-                   "--weight_decay", "0.0001",      # 低权重衰减
-                   "--tsmixer_layers", "5",         # 中等深度
-                   "--time_expansion", "4",         # 平衡时间扩展
-                   "--feat_expansion", "5",         # 较大特征扩展
-                   "--dropout", "0.08",             # 低dropout
-                   "--scheduler", "plateau",        # 平台调度器
-                   "--early_stopping", "10"          # 快速早停
-                   ]
-        },
+        # {
+        #     "name": "🥈 TSMixer亚军配置 (11.69 RMSE)",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "tsmixer", 
+        #            "--fault", "FD001", 
+        #            "--batch_size", "512",           # 超大批量
+        #            "--epochs", "60",
+        #            "--learning_rate", "0.004",      # 高学习率
+        #            "--weight_decay", "0.0001",      # 低权重衰减
+        #            "--tsmixer_layers", "5",         # 中等深度
+        #            "--time_expansion", "4",         # 平衡时间扩展
+        #            "--feat_expansion", "5",         # 较大特征扩展
+        #            "--dropout", "0.08",             # 低dropout
+        #            "--scheduler", "plateau",        # 平台调度器
+        #            "--early_stopping", "10"          # 快速早停
+        #            ]
+        # },
         
-        {
-            "name": "🥉 TSMixer季军配置 (11.91 RMSE)",
-            "cmd": ["python", "train.py", 
-                   "--model", "tsmixer", 
-                   "--fault", "FD001", 
-                   "--batch_size", "256",           # 中等批量
-                   "--epochs", "100",               # 更多训练轮数
-                   "--learning_rate", "0.0012",     # 精调学习率
-                   "--weight_decay", "0.0002",      # 适中权重衰减
-                   "--tsmixer_layers", "8",         # 深层网络
-                   "--time_expansion", "6",         # 大时间扩展
-                   "--feat_expansion", "4",         # 适中特征扩展
-                   "--dropout", "0.12",             # 适中dropout
-                   "--scheduler", "onecycle",       # OneCycle调度器
-                   "--early_stopping", "12"         # 耐心早停
-                   ]
-        },
+        # {
+        #     "name": "🥉 TSMixer季军配置 (11.91 RMSE)",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "tsmixer", 
+        #            "--fault", "FD001", 
+        #            "--batch_size", "256",           # 中等批量
+        #            "--epochs", "100",               # 更多训练轮数
+        #            "--learning_rate", "0.0012",     # 精调学习率
+        #            "--weight_decay", "0.0002",      # 适中权重衰减
+        #            "--tsmixer_layers", "8",         # 深层网络
+        #            "--time_expansion", "6",         # 大时间扩展
+        #            "--feat_expansion", "4",         # 适中特征扩展
+        #            "--dropout", "0.12",             # 适中dropout
+        #            "--scheduler", "onecycle",       # OneCycle调度器
+        #            "--early_stopping", "12"         # 耐心早停
+        #            ]
+        # },
         
+        # ============================================================================
+        # CNN-TSMixer 实验配置 - 新的混合架构
+        # ============================================================================
+        
+        # {
+        #     "name": "🚀 CNN-TSMixer + FD001 (基础配置)",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer", 
+        #            "--fault", "FD001", 
+        #            "--batch_size", "128",
+        #            "--epochs", "50",
+        #            "--learning_rate", "0.001",
+        #            "--weight_decay", "0.0001",
+        #            # CNN-TSMixer特定参数
+        #            "--patch", "5",
+        #            "--cnn_channels", "64",
+        #            "--cnn_layers", "2",
+        #            "--cnn_kernel", "5",
+        #            "--d_model", "128",
+        #            "--depth", "4",
+        #            "--token_mlp_dim", "256",
+        #            "--channel_mlp_dim", "128",
+        #            "--dropout", "0.10",
+        #            "--cnn_pool", "mean",
+        #            "--scheduler", "cosine",
+        #            "--early_stopping", "10"
+        #            ]
+        # },
         
         
         # {

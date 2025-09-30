@@ -9,11 +9,13 @@ import torch
 import logging
 import sys
 from datetime import datetime
-from dataset import CMAPSSDataset
+from dataset import CMAPSSDataset, _xu_window_for
 from models.tsmixer_model import TSMixerModel
 from models.transformer_model import TransformerModel
 from models.bilstm_model import BiLSTMModel
 from models.ellefsen_rbm_lstm_model import EllefsenRBMLSTMModel
+from models.cnn_tsmixer_model import CNNMixerRULModel
+from models.tsmixer_cnn_gated import CNNMixerGatedRULModel
 
 
 def parse_args():
@@ -21,7 +23,7 @@ def parse_args():
 
     # 模型选择
     parser.add_argument("--model", type=str, default="transformer",
-                        choices=["tsmixer", "transformer", "bilstm", "rbmlstm"], help="选择模型架构")
+                        choices=["tsmixer", "transformer", "bilstm", "rbmlstm", "cnn_tsmixer", "cnn_tsmixer_gated"], help="选择模型架构")
 
     # 数据集配置
     parser.add_argument("--fault", type=str, default="FD001",
@@ -71,6 +73,22 @@ def parse_args():
     parser.add_argument("--rbm_lr", type=float, default=1e-2, help="RBM预训练学习率")
     parser.add_argument("--rbm_cd_k", type=int, default=1, help="RBM对比散度步数")
 
+    # CNN-TSMixer特定参数
+    parser.add_argument("--patch", type=int, default=5, help="CNN-TSMixer时间补丁大小")
+    parser.add_argument("--cnn_channels", type=int, default=64, help="CNN前端输出通道数")
+    parser.add_argument("--cnn_layers", type=int, default=3, help="CNN前端层数")
+    parser.add_argument("--cnn_kernel", type=int, default=5, help="CNN卷积核大小")
+    parser.add_argument("--depth", type=int, default=6, help="TSMixer层数")
+    parser.add_argument("--token_mlp_dim", type=int, default=256, help="Token混合MLP维度")
+    parser.add_argument("--channel_mlp_dim", type=int, default=128, help="Channel混合MLP维度")
+    parser.add_argument("--cnn_pool", type=str, default="mean", 
+                        choices=["mean", "last", "weighted"], help="CNN-TSMixer池化方式")
+
+    # 门控CNN-TSMixer特定参数
+    parser.add_argument("--gn_groups", type=int, default=8, help="GroupNorm分组数")
+    parser.add_argument("--use_groupnorm", action="store_true", default=True, help="是否使用GroupNorm")
+    parser.add_argument("--no_groupnorm", action="store_true", help="禁用GroupNorm，使用BatchNorm")
+
     # 学习率调度器
     parser.add_argument("--scheduler", type=str, default="onecycle",
                         choices=["onecycle", "plateau", "cosine"], help="学习率调度器")
@@ -116,12 +134,27 @@ def setup_seed(seed):
 
 def create_datasets(args):
     print(f"=== 创建 {args.fault} 数据集 ===")
+    
+    # 为多工况数据集（FD002/FD004）使用工况设置+传感器，其他使用14传感器
+    if args.fault in ["FD002", "FD004"]:
+        print(f"检测到多工况数据集 {args.fault}，使用工况设置+传感器特征")
+        features_mode = "all"  # 包含3个工况设置 + 21个传感器 = 24特征
+    else:
+        print(f"检测到单工况数据集 {args.fault}，使用14传感器特征")
+        features_mode = "14sensors"  # 14个传感器
+    
     train_set = CMAPSSDataset(
-        data_dir=args.data_dir, fault_mode=args.fault, split="train", preset="xu2023"
+        data_dir=args.data_dir, fault_mode=args.fault, split="train", 
+        preset="custom", features=features_mode,
+        window_size=_xu_window_for(args.fault), stride=1,
+        norm="minmax", label_mode="piecewise_125"
     )
     test_set = CMAPSSDataset(
         data_dir=args.data_dir, fault_mode=args.fault, split="test",
-        preset="xu2023", scaler=train_set.get_scaler()
+        preset="custom", features=features_mode,
+        window_size=_xu_window_for(args.fault), stride=1,
+        norm="minmax", label_mode="piecewise_125",
+        scaler=train_set.get_scaler()
     )
     print(f"训练样本数: {len(train_set)} | 测试样本数: {len(test_set)}")
     print(f"特征维度: {train_set.n_features}, 窗口大小: {train_set.window_size}")
@@ -163,6 +196,38 @@ def create_model(args, input_size, seq_len):
             ff_hidden=args.ff_hidden,
             dropout_lstm=args.dropout_lstm,
             pool=args.rbm_pool
+        )
+    elif args.model == "cnn_tsmixer":
+        model = CNNMixerRULModel(
+            input_size=input_size, seq_len=seq_len,
+            patch=args.patch,
+            cnn_channels=args.cnn_channels,
+            cnn_layers=args.cnn_layers,
+            cnn_kernel=args.cnn_kernel,
+            d_model=args.d_model,
+            depth=args.depth,
+            token_mlp_dim=args.token_mlp_dim,
+            channel_mlp_dim=args.channel_mlp_dim,
+            dropout=args.dropout,
+            pool=args.cnn_pool
+        )
+    elif args.model == "cnn_tsmixer_gated":
+        # 处理GroupNorm参数
+        use_groupnorm = args.use_groupnorm and not args.no_groupnorm
+        model = CNNMixerGatedRULModel(
+            input_size=input_size, seq_len=seq_len,
+            patch=args.patch,
+            cnn_channels=args.cnn_channels,
+            cnn_layers=args.cnn_layers,
+            cnn_kernel=args.cnn_kernel,
+            d_model=args.d_model,
+            depth=args.depth,
+            token_mlp_dim=args.token_mlp_dim,
+            channel_mlp_dim=args.channel_mlp_dim,
+            dropout=args.dropout,
+            pool=args.cnn_pool,
+            gn_groups=args.gn_groups,
+            use_groupnorm=use_groupnorm
         )
     else:
         raise ValueError(f"未支持的模型类型: {args.model}")
@@ -229,6 +294,35 @@ def main():
         logger.info(f"TSMixer层数: {args.tsmixer_layers}")
         logger.info(f"时间混合层扩展倍数: {args.time_expansion}")
         logger.info(f"特征混合层扩展倍数: {args.feat_expansion}")
+        logger.info(f"Dropout: {args.dropout}")
+    elif args.model == "cnn_tsmixer":
+        logger.info("--- CNN-TSMixer 特定参数 ---")
+        logger.info(f"时间补丁大小: {args.patch}")
+        logger.info(f"CNN前端通道数: {args.cnn_channels}")
+        logger.info(f"CNN前端层数: {args.cnn_layers}")
+        logger.info(f"CNN卷积核大小: {args.cnn_kernel}")
+        logger.info(f"模型维度: {args.d_model}")
+        logger.info(f"TSMixer层数: {args.depth}")
+        logger.info(f"Token混合MLP维度: {args.token_mlp_dim}")
+        logger.info(f"Channel混合MLP维度: {args.channel_mlp_dim}")
+        logger.info(f"池化方式: {args.cnn_pool}")
+        logger.info(f"Dropout: {args.dropout}")
+    elif args.model == "cnn_tsmixer_gated":
+        use_groupnorm = args.use_groupnorm and not args.no_groupnorm
+        logger.info("--- 门控CNN-TSMixer 特定参数 ---")
+        logger.info(f"时间补丁大小: {args.patch}")
+        logger.info(f"CNN前端通道数: {args.cnn_channels}")
+        logger.info(f"CNN前端层数: {args.cnn_layers}")
+        logger.info(f"CNN卷积核大小: {args.cnn_kernel}")
+        logger.info(f"模型维度: {args.d_model}")
+        logger.info(f"TSMixer层数: {args.depth}")
+        logger.info(f"Token混合MLP维度: {args.token_mlp_dim}")
+        logger.info(f"Channel混合MLP维度: {args.channel_mlp_dim}")
+        logger.info(f"池化方式: {args.cnn_pool}")
+        logger.info(f"归一化方式: {'GroupNorm' if use_groupnorm else 'BatchNorm'}")
+        if use_groupnorm:
+            logger.info(f"GroupNorm分组数: {args.gn_groups}")
+        logger.info(f"门控机制: 启用自适应CNN-原始输入融合")
         logger.info(f"Dropout: {args.dropout}")
     
     logger.info("="*80)
@@ -362,6 +456,15 @@ def main():
     elif args.model == "bilstm":
         direction = "Bi" if args.bidirectional else "Uni"
         config_summary = f"{direction}LSTM-H{args.lstm_hidden}-L{args.lstm_layers}-MLP{args.mlp_hidden}"
+        logger.info(f"架构摘要: {config_summary}")
+    elif args.model == "cnn_tsmixer":
+        config_summary = f"CNN{args.cnn_channels}x{args.cnn_layers}K{args.cnn_kernel}-TSMixer{args.d_model}x{args.depth}P{args.patch}-{args.cnn_pool}"
+        logger.info(f"架构摘要: {config_summary}")
+    elif args.model == "cnn_tsmixer_gated":
+        use_groupnorm = args.use_groupnorm and not args.no_groupnorm
+        norm_type = "GN" if use_groupnorm else "BN"
+        gn_suffix = f"G{args.gn_groups}" if use_groupnorm else ""
+        config_summary = f"GatedCNN{args.cnn_channels}x{args.cnn_layers}K{args.cnn_kernel}{norm_type}{gn_suffix}-TSMixer{args.d_model}x{args.depth}P{args.patch}-{args.cnn_pool}"
         logger.info(f"架构摘要: {config_summary}")
     
     logger.info("="*80)
