@@ -49,23 +49,13 @@ project/
 pip install -r requirements.txt
 ```
 
-2. 确保数据集文件在 `CMAPSSData/` 目录下
+2. 安装torch
 
-## 使用方法
+3. 确保数据集文件在 `CMAPSSData/` 目录下
 
-### 单个模型训练
-```bash
-# TSMixer模型
-python train.py --model tsmixer --fault FD001 --epochs 100
-
-# CNN-TSMixer混合模型
-python train.py --model cnn_tsmixer --fault FD001 --epochs 50
-
-# 门控CNN-TSMixer模型
-python train.py --model cnn_tsmixer_gated --fault FD001 --epochs 50
 ```
 
-### 批量实验
+##  使用方法
 ```bash
 python run_experiments.py
 ```
@@ -165,27 +155,3 @@ python run_experiments.py
 - **新增数据集**: 在dataset.py中添加新的数据源支持
 - **超参数优化**: 支持网格搜索和随机搜索
 - **自定义损失函数**: 可在模型中自定义损失函数
-
-## 贡献指南
-
-1. Fork 本项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
-
-## 许可证
-
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
-
-## 联系方式
-
-如有问题或建议，请通过以下方式联系：
-- 提交 Issue
-- 发送邮件至 [your-email@example.com]
-
-## 致谢
-
-- NASA C-MAPSS数据集
-- PyTorch深度学习框架
-- 相关研究论文和开源项目
