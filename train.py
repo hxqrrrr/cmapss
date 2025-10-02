@@ -16,6 +16,7 @@ from models.bilstm_model import BiLSTMModel
 from models.ellefsen_rbm_lstm_model import EllefsenRBMLSTMModel
 from models.cnn_tsmixer_model import CNNMixerRULModel
 from models.tsmixer_cnn_gated import CNNMixerGatedRULModel
+from models.tsmixer_gated_tokenpool import TokenPoolRULModel
 
 
 def parse_args():
@@ -23,7 +24,7 @@ def parse_args():
 
     # 模型选择
     parser.add_argument("--model", type=str, default="transformer",
-                        choices=["tsmixer", "transformer", "bilstm", "rbmlstm", "cnn_tsmixer", "cnn_tsmixer_gated"], help="选择模型架构")
+                        choices=["tsmixer", "transformer", "bilstm", "rbmlstm", "cnn_tsmixer", "cnn_tsmixer_gated", "tokenpool"], help="选择模型架构")
 
     # 数据集配置
     parser.add_argument("--fault", type=str, default="FD001",
@@ -88,6 +89,11 @@ def parse_args():
     parser.add_argument("--gn_groups", type=int, default=8, help="GroupNorm分组数")
     parser.add_argument("--use_groupnorm", action="store_true", default=True, help="是否使用GroupNorm")
     parser.add_argument("--no_groupnorm", action="store_true", help="禁用GroupNorm，使用BatchNorm")
+    
+    # TokenPool特定参数
+    parser.add_argument("--tokenpool_heads", type=int, default=4, help="TokenPool注意力头数")
+    parser.add_argument("--tokenpool_dropout", type=float, default=0.0, help="TokenPool注意力dropout")
+    parser.add_argument("--tokenpool_temperature", type=float, default=1.5, help="TokenPool注意力温度")
 
     # 学习率调度器
     parser.add_argument("--scheduler", type=str, default="onecycle",
@@ -229,6 +235,20 @@ def create_model(args, input_size, seq_len):
             gn_groups=args.gn_groups,
             use_groupnorm=use_groupnorm
         )
+    elif args.model == "tokenpool":
+        model = TokenPoolRULModel(
+            input_size=input_size, seq_len=seq_len,
+            patch=args.patch,
+            d_model=args.d_model,
+            depth=args.depth,
+            token_mlp_dim=args.token_mlp_dim,
+            channel_mlp_dim=args.channel_mlp_dim,
+            dropout=args.dropout,
+            pool=args.cnn_pool,  # TokenPool使用pool参数
+            tokenpool_heads=args.tokenpool_heads,
+            tokenpool_dropout=args.tokenpool_dropout,
+            tokenpool_temperature=args.tokenpool_temperature
+        )
     else:
         raise ValueError(f"未支持的模型类型: {args.model}")
     return model
@@ -323,6 +343,18 @@ def main():
         if use_groupnorm:
             logger.info(f"GroupNorm分组数: {args.gn_groups}")
         logger.info(f"门控机制: 启用自适应CNN-原始输入融合")
+        logger.info(f"Dropout: {args.dropout}")
+    elif args.model == "tokenpool":
+        logger.info("--- TokenPool 特定参数 ---")
+        logger.info(f"时间补丁大小: {args.patch}")
+        logger.info(f"模型维度: {args.d_model}")
+        logger.info(f"TSMixer层数: {args.depth}")
+        logger.info(f"Token混合MLP维度: {args.token_mlp_dim}")
+        logger.info(f"Channel混合MLP维度: {args.channel_mlp_dim}")
+        logger.info(f"池化方式: {args.cnn_pool}")
+        logger.info(f"TokenPool注意力头数: {args.tokenpool_heads}")
+        logger.info(f"TokenPool注意力dropout: {args.tokenpool_dropout}")
+        logger.info(f"TokenPool注意力温度: {args.tokenpool_temperature}")
         logger.info(f"Dropout: {args.dropout}")
     
     logger.info("="*80)
@@ -465,6 +497,9 @@ def main():
         norm_type = "GN" if use_groupnorm else "BN"
         gn_suffix = f"G{args.gn_groups}" if use_groupnorm else ""
         config_summary = f"GatedCNN{args.cnn_channels}x{args.cnn_layers}K{args.cnn_kernel}{norm_type}{gn_suffix}-TSMixer{args.d_model}x{args.depth}P{args.patch}-{args.cnn_pool}"
+        logger.info(f"架构摘要: {config_summary}")
+    elif args.model == "tokenpool":
+        config_summary = f"TokenPool{args.tokenpool_heads}H-T{args.tokenpool_temperature}-TSMixer{args.d_model}x{args.depth}P{args.patch}-{args.cnn_pool}"
         logger.info(f"架构摘要: {config_summary}")
     
     logger.info("="*80)

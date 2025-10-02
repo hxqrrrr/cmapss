@@ -29,6 +29,156 @@ def main():
     experiments = [
         
         # ============================================================================
+        # TokenPool 纯注意力池化实验 - 无CNN前端，直接学习时间特征
+        # ============================================================================
+        
+        # {
+        #     "name": "🟩 FD002-A: 提高token粒度（patch=4）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool",
+        #            "--fault", "FD002",
+        #            "--batch_size", "192",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0002",
+        #            "--patch", "4",
+        #            "--d_model", "160",
+        #            "--depth", "5",
+        #            "--token_mlp_dim", "320",
+        #            "--channel_mlp_dim", "160",
+        #            "--dropout", "0.12",
+        #            "--cnn_pool", "weighted",
+        #            "--tokenpool_heads", "8",
+        #            "--tokenpool_dropout", "0.12",
+        #            "--tokenpool_temperature", "1.8",
+        #            "--scheduler", "cosine",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
+        
+        {
+            "name": "🟦 FD002-B: 多头分工（heads=10, 温度2.0）",
+            "cmd": ["python", "train.py",
+                   "--model", "tokenpool",
+                   "--fault", "FD002",
+                   "--batch_size", "192",
+                   "--epochs", "100",
+                   "--learning_rate", "0.0008",
+                   "--weight_decay", "0.0002",
+                   "--patch", "5",
+                   "--d_model", "200",
+                   "--depth", "5",
+                   "--token_mlp_dim", "400",
+                   "--channel_mlp_dim", "200",
+                   "--dropout", "0.12",
+                   "--cnn_pool", "weighted",
+                   "--tokenpool_heads", "10",
+                   "--tokenpool_dropout", "0.12",
+                   "--tokenpool_temperature", "2.0",
+                   "--scheduler", "cosine",
+                   "--early_stopping", "12"
+                   ]
+        },
+        
+        {
+            "name": "🟨 FD002-C: 更细粒度上限（patch=3）",
+            "cmd": ["python", "train.py",
+                   "--model", "tokenpool",
+                   "--fault", "FD002",
+                   "--batch_size", "160",
+                   "--epochs", "100",
+                   "--learning_rate", "0.0008",
+                   "--weight_decay", "0.0002",
+                   "--patch", "3",
+                   "--d_model", "160",
+                   "--depth", "5",
+                   "--token_mlp_dim", "384",
+                   "--channel_mlp_dim", "160",
+                   "--dropout", "0.14",
+                   "--cnn_pool", "weighted",
+                   "--tokenpool_heads", "8",
+                   "--tokenpool_dropout", "0.14",
+                   "--tokenpool_temperature", "1.9",
+                   "--scheduler", "cosine",
+                   "--early_stopping", "12"
+                   ]
+        },
+        
+        {
+            "name": "🟪 FD002-D: 大容量稳态（d_model↑, depth↑）",
+            "cmd": ["python", "train.py",
+                   "--model", "tokenpool",
+                   "--fault", "FD002",
+                   "--batch_size", "160",
+                   "--epochs", "100",
+                   "--learning_rate", "0.0007",
+                   "--weight_decay", "0.00025",
+                   "--patch", "5",
+                   "--d_model", "192",
+                   "--depth", "6",
+                   "--token_mlp_dim", "384",
+                   "--channel_mlp_dim", "192",
+                   "--dropout", "0.13",
+                   "--cnn_pool", "weighted",
+                   "--tokenpool_heads", "8",
+                   "--tokenpool_dropout", "0.12",
+                   "--tokenpool_temperature", "1.7",
+                   "--scheduler", "cosine",
+                   "--early_stopping", "14"
+                   ]
+        },
+        
+        {
+            "name": "🟥 FD002-E: 末端更关注（pool=last 对照）",
+            "cmd": ["python", "train.py",
+                   "--model", "tokenpool",
+                   "--fault", "FD002",
+                   "--batch_size", "192",
+                   "--epochs", "100",
+                   "--learning_rate", "0.0008",
+                   "--weight_decay", "0.0002",
+                   "--patch", "4",
+                   "--d_model", "160",
+                   "--depth", "5",
+                   "--token_mlp_dim", "320",
+                   "--channel_mlp_dim", "160",
+                   "--dropout", "0.12",
+                   "--cnn_pool", "last",
+                   "--tokenpool_heads", "8",
+                   "--tokenpool_dropout", "0.12",
+                   "--tokenpool_temperature", "1.8",
+                   "--scheduler", "plateau",
+                   "--early_stopping", "12"
+                   ]
+        },
+    
+        
+        {
+            "name": "⚡ TokenPool-3: FD004极限挑战",
+            "cmd": ["python", "train.py", 
+                   "--model", "tokenpool", 
+                   "--fault", "FD004", 
+                   "--batch_size", "128",           # FD004最复杂，小批量
+                   "--epochs", "100",                # FD004需要充分训练
+                   "--learning_rate", "0.0006",     # FD004保守学习率
+                   "--weight_decay", "0.0003",      # 强权重衰减
+                   # TokenPool参数 - 为复杂数据集优化
+                   "--patch", "5",                  # 保持10个tokens
+                   "--d_model", "160",              # 更大模型容量
+                   "--depth", "6",                  # 深层TSMixer
+                   "--token_mlp_dim", "384",        # 大MLP
+                   "--channel_mlp_dim", "192",
+                   "--dropout", "0.15",             # 强dropout防过拟合
+                   "--cnn_pool", "weighted",        # 关注后期特征
+                   "--tokenpool_heads", "8",        # 更多注意力头处理复杂模式
+                   "--tokenpool_dropout", "0.15",   
+                   "--tokenpool_temperature", "2.0", # 更高温度防塌缩
+                   "--scheduler", "cosine",
+                   "--early_stopping", "15"
+                   ]
+        },
+        
+        # ============================================================================
         # CNN-TSMixer vs TSMixer 对比实验 - 目标超越 11.39 RMSE (TSMixer最佳)
         # ============================================================================
         
@@ -443,117 +593,119 @@ def main():
         #            ]
         # },
         
+    
+
         # ============================================================================
         # TSMixer + FD004 专项优化配置 - 针对最复杂数据集的参数调优
         # ============================================================================
         
-        {
-            "name": "🎯 TSMixer + FD004: 强正则化稳定配置",
-            "cmd": ["python", "train.py", 
-                   "--model", "tsmixer", 
-                   "--fault", "FD004", 
-                   "--batch_size", "128",           # FD004复杂数据用小批量
-                   "--epochs", "100",               # FD004需要充分训练
-                   "--learning_rate", "0.001",      # FD004用保守学习率
-                   "--weight_decay", "0.0003",      # FD004需要强权重衰减
-                   "--tsmixer_layers", "5",         # 适中层数平衡容量和过拟合
-                   "--time_expansion", "6",         # 较大时间扩展处理复杂时序
-                   "--feat_expansion", "4",         # 适中特征扩展
-                   "--dropout", "0.20",             # FD004需要强正则化防过拟合
-                   "--scheduler", "cosine",         # 长期稳定训练
-                   "--early_stopping", "15"         # FD004需要更大耐心值
-                   ]
-        },
+        # {
+        #     "name": "🎯 TSMixer + FD004: 强正则化稳定配置",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "tsmixer", 
+        #            "--fault", "FD004", 
+        #            "--batch_size", "128",           # FD004复杂数据用小批量
+        #            "--epochs", "100",               # FD004需要充分训练
+        #            "--learning_rate", "0.001",      # FD004用保守学习率
+        #            "--weight_decay", "0.0003",      # FD004需要强权重衰减
+        #            "--tsmixer_layers", "5",         # 适中层数平衡容量和过拟合
+        #            "--time_expansion", "6",         # 较大时间扩展处理复杂时序
+        #            "--feat_expansion", "4",         # 适中特征扩展
+        #            "--dropout", "0.20",             # FD004需要强正则化防过拟合
+        #            "--scheduler", "cosine",         # 长期稳定训练
+        #            "--early_stopping", "15"         # FD004需要更大耐心值
+        #            ]
+        # },
         
-        {
-            "name": "🚀 TSMixer + FD004: 深层网络配置",
-            "cmd": ["python", "train.py", 
-                   "--model", "tsmixer", 
-                   "--fault", "FD004", 
-                   "--batch_size", "96",            # 更小批量适应深层网络
-                   "--epochs", "120",               # 深层网络需要更多训练
-                   "--learning_rate", "0.0008",     # 深层网络用更保守学习率
-                   "--weight_decay", "0.0004",      # 深层网络增加权重衰减
-                   "--tsmixer_layers", "8",         # 更深的网络
-                   "--time_expansion", "8",         # 更大时间扩展
-                   "--feat_expansion", "5",         # 更大特征扩展
-                   "--dropout", "0.25",             # 深层网络需要更强正则化
-                   "--scheduler", "onecycle",       # 深层网络适合OneCycle
-                   "--early_stopping", "20"         # 深层网络需要更多耐心
-                   ]
-        },
+        # {
+        #     "name": "🚀 TSMixer + FD004: 深层网络配置",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "tsmixer", 
+        #            "--fault", "FD004", 
+        #            "--batch_size", "96",            # 更小批量适应深层网络
+        #            "--epochs", "120",               # 深层网络需要更多训练
+        #            "--learning_rate", "0.0008",     # 深层网络用更保守学习率
+        #            "--weight_decay", "0.0004",      # 深层网络增加权重衰减
+        #            "--tsmixer_layers", "8",         # 更深的网络
+        #            "--time_expansion", "8",         # 更大时间扩展
+        #            "--feat_expansion", "5",         # 更大特征扩展
+        #            "--dropout", "0.25",             # 深层网络需要更强正则化
+        #            "--scheduler", "onecycle",       # 深层网络适合OneCycle
+        #            "--early_stopping", "20"         # 深层网络需要更多耐心
+        #            ]
+        # },
         
-        {
-            "name": "⚡ TSMixer + FD004: 高效轻量配置",
-            "cmd": ["python", "train.py", 
-                   "--model", "tsmixer", 
-                   "--fault", "FD004", 
-                   "--batch_size", "192",           # 轻量模型可用较大批量
-                   "--epochs", "80",                # 轻量模型训练更快
-                   "--learning_rate", "0.0015",     # 轻量模型可用稍高学习率
-                   "--weight_decay", "0.0002",      # 适中权重衰减
-                   "--tsmixer_layers", "3",         # 较浅网络
-                   "--time_expansion", "4",         # 适中时间扩展
-                   "--feat_expansion", "3",         # 适中特征扩展
-                   "--dropout", "0.15",             # 适中正则化
-                   "--scheduler", "plateau",        # 快速响应调度器
-                   "--early_stopping", "12"         # 适中早停耐心
-                   ]
-        },
+        # {
+        #     "name": "⚡ TSMixer + FD004: 高效轻量配置",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "tsmixer", 
+        #            "--fault", "FD004", 
+        #            "--batch_size", "192",           # 轻量模型可用较大批量
+        #            "--epochs", "80",                # 轻量模型训练更快
+        #            "--learning_rate", "0.0015",     # 轻量模型可用稍高学习率
+        #            "--weight_decay", "0.0002",      # 适中权重衰减
+        #            "--tsmixer_layers", "3",         # 较浅网络
+        #            "--time_expansion", "4",         # 适中时间扩展
+        #            "--feat_expansion", "3",         # 适中特征扩展
+        #            "--dropout", "0.15",             # 适中正则化
+        #            "--scheduler", "plateau",        # 快速响应调度器
+        #            "--early_stopping", "12"         # 适中早停耐心
+        #            ]
+        # },
         
-        {
-            "name": "🚀 FD004-Deeper-Token12: 深度12token配置",
-            "cmd": ["python", "train.py", 
-                   "--model", "cnn_tsmixer_gated", 
-                   "--fault", "FD004", 
-                   "--batch_size", "160",           # FD004深层模型用更小批量
-                   "--epochs", "90",                # FD004需要更多轮数
-                   "--learning_rate", "0.0008",     # FD004深层模型更保守学习率
-                   "--weight_decay", "0.0002",      # 增加权重衰减
-                   # 深度12token配置 (50//4=12 tokens, T_eff=48)
-                   "--patch", "4",                  # 更细粒度patch获得12个tokens
-                   "--cnn_channels", "80",          # 更多CNN通道
-                   "--cnn_layers", "3",             # 更深CNN层
-                   "--cnn_kernel", "3",
-                   "--d_model", "192",              # 更大模型容量
-                   "--depth", "6",                  # 更深TSMixer
-                   "--token_mlp_dim", "384",
-                   "--channel_mlp_dim", "192",
-                   "--dropout", "0.18",             # FD004深层模型需要更强正则化
-                   "--cnn_pool", "weighted",        # 末端敏感池化
-                   "--use_groupnorm",
-                   "--gn_groups", "10",             # 更多GroupNorm组
-                   "--scheduler", "cosine",
-                   "--early_stopping", "18"         # FD004深层模型需要更多耐心
-                   ]
-        },
+        # {
+        #     "name": "🚀 FD004-Deeper-Token12: 深度12token配置",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer_gated", 
+        #            "--fault", "FD004", 
+        #            "--batch_size", "160",           # FD004深层模型用更小批量
+        #            "--epochs", "90",                # FD004需要更多轮数
+        #            "--learning_rate", "0.0008",     # FD004深层模型更保守学习率
+        #            "--weight_decay", "0.0002",      # 增加权重衰减
+        #            # 深度12token配置 (50//4=12 tokens, T_eff=48)
+        #            "--patch", "4",                  # 更细粒度patch获得12个tokens
+        #            "--cnn_channels", "80",          # 更多CNN通道
+        #            "--cnn_layers", "3",             # 更深CNN层
+        #            "--cnn_kernel", "3",
+        #            "--d_model", "192",              # 更大模型容量
+        #            "--depth", "6",                  # 更深TSMixer
+        #            "--token_mlp_dim", "384",
+        #            "--channel_mlp_dim", "192",
+        #            "--dropout", "0.18",             # FD004深层模型需要更强正则化
+        #            "--cnn_pool", "weighted",        # 末端敏感池化
+        #            "--use_groupnorm",
+        #            "--gn_groups", "10",             # 更多GroupNorm组
+        #            "--scheduler", "cosine",
+        #            "--early_stopping", "18"         # FD004深层模型需要更多耐心
+        #            ]
+        # },
         
-        {
-            "name": "⚡ FD004-Light-Fast: 轻量16token高效配置",
-            "cmd": ["python", "train.py", 
-                   "--model", "cnn_tsmixer_gated", 
-                   "--fault", "FD004", 
-                   "--batch_size", "224",           # FD004轻量版适中批量
-                   "--epochs", "70",                # FD004需要更多轮数
-                   "--learning_rate", "0.0012",     # FD004稍保守学习率
-                   "--weight_decay", "0.0002",      # FD004增加正则化
-                   # 轻量16token配置 (50//3=16 tokens, T_eff=48)
-                   "--patch", "3",                  # 小patch获得16个tokens
-                   "--cnn_channels", "64",          # 轻量CNN通道
-                   "--cnn_layers", "2",
-                   "--cnn_kernel", "3",
-                   "--d_model", "144",              # 平衡的模型维度
-                   "--depth", "5",                  # 适中深度
-                   "--token_mlp_dim", "288",
-                   "--channel_mlp_dim", "144",
-                   "--dropout", "0.20",             # FD004轻量模型需要更强dropout
-                   "--cnn_pool", "weighted",
-                   "--use_groupnorm",
-                   "--gn_groups", "8",
-                   "--scheduler", "plateau",        # 快速响应的plateau调度
-                   "--early_stopping", "15"         # FD004需要更多耐心
-                   ]
-        },
+        # {
+        #     "name": "⚡ FD004-Light-Fast: 轻量16token高效配置",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "cnn_tsmixer_gated", 
+        #            "--fault", "FD004", 
+        #            "--batch_size", "224",           # FD004轻量版适中批量
+        #            "--epochs", "70",                # FD004需要更多轮数
+        #            "--learning_rate", "0.0012",     # FD004稍保守学习率
+        #            "--weight_decay", "0.0002",      # FD004增加正则化
+        #            # 轻量16token配置 (50//3=16 tokens, T_eff=48)
+        #            "--patch", "3",                  # 小patch获得16个tokens
+        #            "--cnn_channels", "64",          # 轻量CNN通道
+        #            "--cnn_layers", "2",
+        #            "--cnn_kernel", "3",
+        #            "--d_model", "144",              # 平衡的模型维度
+        #            "--depth", "5",                  # 适中深度
+        #            "--token_mlp_dim", "288",
+        #            "--channel_mlp_dim", "144",
+        #            "--dropout", "0.20",             # FD004轻量模型需要更强dropout
+        #            "--cnn_pool", "weighted",
+        #            "--use_groupnorm",
+        #            "--gn_groups", "8",
+        #            "--scheduler", "plateau",        # 快速响应的plateau调度
+        #            "--early_stopping", "15"         # FD004需要更多耐心
+        #            ]
+        # },
         
         # # TSMixer实验
         # {
