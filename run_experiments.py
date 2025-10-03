@@ -29,6 +29,146 @@ def main():
     experiments = [
         
         # ============================================================================
+        # TSMixer-SGA 新模型实验 - 带双维可扩展全局注意力的TSMixer
+        # ============================================================================
+        
+        {
+            "name": "🟩 TSMixer-SGA-1: FD002基础+SGA（稳健起步）",
+            "cmd": ["python", "train.py",
+                   "--model", "tsmixer_sga",
+                   "--fault", "FD002",
+                   "--batch_size", "192",
+                   "--epochs", "70",
+                   "--learning_rate", "0.0009",
+                   "--weight_decay", "0.0002",
+                   "--tsmixer_layers", "5",
+                   "--time_expansion", "4",
+                   "--feat_expansion", "4",
+                   "--dropout", "0.12",
+                   "--use_sga",
+                   "--sga_time_rr", "4",
+                   "--sga_feat_rr", "4",
+                   "--sga_dropout", "0.05",
+                   "--sga_pool", "weighted",       # 多工况更稳
+                   "--scheduler", "plateau",
+                   "--early_stopping", "12"
+                   ]
+        },
+        
+        {
+            "name": "🚀 TSMixer-SGA-2: 深层Mixer + 轻SGA（容量↑，门控更轻）",
+            "cmd": ["python", "train.py",
+                   "--model", "tsmixer_sga",
+                   "--fault", "FD002",
+                   "--batch_size", "160",
+                   "--epochs", "90",
+                   "--learning_rate", "0.0008",
+                   "--weight_decay", "0.00025",
+                   "--tsmixer_layers", "6",        # 深一些
+                   "--time_expansion", "5",
+                   "--feat_expansion", "4",
+                   "--dropout", "0.12",
+                   "--use_sga",
+                   "--sga_time_rr", "6",           # 更大压缩比=更轻
+                   "--sga_feat_rr", "6",
+                   "--sga_dropout", "0.05",
+                   "--sga_pool", "weighted",
+                   "--scheduler", "cosine",
+                   "--early_stopping", "14"
+                   ]
+        },
+        
+        {
+            "name": "⚡ TSMixer-SGA-3: 中层Mixer + 强SGA（更强剔噪）",
+            "cmd": ["python", "train.py",
+                   "--model", "tsmixer_sga",
+                   "--fault", "FD002",
+                   "--batch_size", "176",
+                   "--epochs", "80",
+                   "--learning_rate", "0.00085",
+                   "--weight_decay", "0.0003",
+                   "--tsmixer_layers", "5",
+                   "--time_expansion", "6",
+                   "--feat_expansion", "5",
+                   "--dropout", "0.15",            # 正则更强
+                   "--use_sga",
+                   "--sga_time_rr", "4",           # 门控更"细"
+                   "--sga_feat_rr", "4",
+                   "--sga_dropout", "0.08",
+                   "--sga_pool", "weighted",
+                   "--scheduler", "plateau",
+                   "--early_stopping", "15"
+                   ]
+        },
+        
+        {
+            "name": "🎯 TSMixer-SGA-4: 池化策略对比（末端last）",
+            "cmd": ["python", "train.py",
+                   "--model", "tsmixer_sga",
+                   "--fault", "FD002",
+                   "--batch_size", "192",
+                   "--epochs", "70",
+                   "--learning_rate", "0.0009",
+                   "--weight_decay", "0.0002",
+                   "--tsmixer_layers", "5",
+                   "--time_expansion", "4",
+                   "--feat_expansion", "4",
+                   "--dropout", "0.12",
+                   "--use_sga",
+                   "--sga_time_rr", "5",
+                   "--sga_feat_rr", "5",
+                   "--sga_dropout", "0.06",
+                   "--sga_pool", "last",           # 末期RUL更敏感
+                   "--scheduler", "plateau",
+                   "--early_stopping", "12"
+                   ]
+        },
+        
+        {
+            "name": "🧪 TSMixer-SGA-5: OneCycle收敛加速 + mean池化",
+            "cmd": ["python", "train.py",
+                   "--model", "tsmixer_sga",
+                   "--fault", "FD002",
+                   "--batch_size", "180",
+                   "--epochs", "70",
+                   "--learning_rate", "0.0010",    # OneCycle 允许略高峰值
+                   "--weight_decay", "0.0002",
+                   "--tsmixer_layers", "6",
+                   "--time_expansion", "5",
+                   "--feat_expansion", "5",
+                   "--dropout", "0.12",
+                   "--use_sga",
+                   "--sga_time_rr", "6",
+                   "--sga_feat_rr", "6",
+                   "--sga_dropout", "0.05",
+                   "--sga_pool", "mean",           # 对比 weighted/last
+                   "--scheduler", "onecycle",
+                   "--early_stopping", "12"
+                   ]
+        },
+        
+        {
+            "name": "🧰 TSMixer-SGA-6: 无SGA对照（确认增益）",
+            "cmd": ["python", "train.py",
+                   "--model", "tsmixer_sga",
+                   "--fault", "FD002",
+                   "--batch_size", "192",
+                   "--epochs", "70",
+                   "--learning_rate", "0.0009",
+                   "--weight_decay", "0.0002",
+                   "--tsmixer_layers", "5",
+                   "--time_expansion", "4",
+                   "--feat_expansion", "4",
+                   "--dropout", "0.12",
+                   # 不使用 --use_sga，验证SGA的效果
+                   "--sga_pool", "weighted",       # 保持其它设置一致
+                   "--scheduler", "plateau",
+                   "--early_stopping", "12"
+                   ]
+        },
+
+        
+        # ============================================================================
         # TokenPool 纯注意力池化实验 - 无CNN前端，直接学习时间特征
         # ============================================================================
         
@@ -56,127 +196,127 @@ def main():
         #            ]
         # },
         
-        {
-            "name": "🟦 FD002-B: 多头分工（heads=10, 温度2.0）",
-            "cmd": ["python", "train.py",
-                   "--model", "tokenpool",
-                   "--fault", "FD002",
-                   "--batch_size", "192",
-                   "--epochs", "100",
-                   "--learning_rate", "0.0008",
-                   "--weight_decay", "0.0002",
-                   "--patch", "5",
-                   "--d_model", "200",
-                   "--depth", "5",
-                   "--token_mlp_dim", "400",
-                   "--channel_mlp_dim", "200",
-                   "--dropout", "0.12",
-                   "--cnn_pool", "weighted",
-                   "--tokenpool_heads", "10",
-                   "--tokenpool_dropout", "0.12",
-                   "--tokenpool_temperature", "2.0",
-                   "--scheduler", "cosine",
-                   "--early_stopping", "12"
-                   ]
-        },
+        # {
+        #     "name": "🟦 FD002-B: 多头分工（heads=10, 温度2.0）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool",
+        #            "--fault", "FD002",
+        #            "--batch_size", "192",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0002",
+        #            "--patch", "5",
+        #            "--d_model", "200",
+        #            "--depth", "5",
+        #            "--token_mlp_dim", "400",
+        #            "--channel_mlp_dim", "200",
+        #            "--dropout", "0.12",
+        #            "--cnn_pool", "weighted",
+        #            "--tokenpool_heads", "10",
+        #            "--tokenpool_dropout", "0.12",
+        #            "--tokenpool_temperature", "2.0",
+        #            "--scheduler", "cosine",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
         
-        {
-            "name": "🟨 FD002-C: 更细粒度上限（patch=3）",
-            "cmd": ["python", "train.py",
-                   "--model", "tokenpool",
-                   "--fault", "FD002",
-                   "--batch_size", "160",
-                   "--epochs", "100",
-                   "--learning_rate", "0.0008",
-                   "--weight_decay", "0.0002",
-                   "--patch", "3",
-                   "--d_model", "160",
-                   "--depth", "5",
-                   "--token_mlp_dim", "384",
-                   "--channel_mlp_dim", "160",
-                   "--dropout", "0.14",
-                   "--cnn_pool", "weighted",
-                   "--tokenpool_heads", "8",
-                   "--tokenpool_dropout", "0.14",
-                   "--tokenpool_temperature", "1.9",
-                   "--scheduler", "cosine",
-                   "--early_stopping", "12"
-                   ]
-        },
+        # {
+        #     "name": "🟨 FD002-C: 更细粒度上限（patch=3）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool",
+        #            "--fault", "FD002",
+        #            "--batch_size", "160",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0002",
+        #            "--patch", "3",  
+        #            "--d_model", "160",
+        #            "--depth", "5",
+        #            "--token_mlp_dim", "384",
+        #            "--channel_mlp_dim", "160",
+        #            "--dropout", "0.14",
+        #            "--cnn_pool", "weighted",
+        #            "--tokenpool_heads", "8",
+        #            "--tokenpool_dropout", "0.14",
+        #            "--tokenpool_temperature", "1.9",
+        #            "--scheduler", "cosine",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
         
-        {
-            "name": "🟪 FD002-D: 大容量稳态（d_model↑, depth↑）",
-            "cmd": ["python", "train.py",
-                   "--model", "tokenpool",
-                   "--fault", "FD002",
-                   "--batch_size", "160",
-                   "--epochs", "100",
-                   "--learning_rate", "0.0007",
-                   "--weight_decay", "0.00025",
-                   "--patch", "5",
-                   "--d_model", "192",
-                   "--depth", "6",
-                   "--token_mlp_dim", "384",
-                   "--channel_mlp_dim", "192",
-                   "--dropout", "0.13",
-                   "--cnn_pool", "weighted",
-                   "--tokenpool_heads", "8",
-                   "--tokenpool_dropout", "0.12",
-                   "--tokenpool_temperature", "1.7",
-                   "--scheduler", "cosine",
-                   "--early_stopping", "14"
-                   ]
-        },
+        # {
+        #     "name": "🟪 FD002-D: 大容量稳态（d_model↑, depth↑）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool",
+        #            "--fault", "FD002",
+        #            "--batch_size", "160",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0007",
+        #            "--weight_decay", "0.00025",
+        #            "--patch", "5",
+        #            "--d_model", "192",
+        #            "--depth", "6",
+        #            "--token_mlp_dim", "384",
+        #            "--channel_mlp_dim", "192",
+        #            "--dropout", "0.13",
+        #            "--cnn_pool", "weighted",
+        #            "--tokenpool_heads", "8",
+        #            "--tokenpool_dropout", "0.12",
+        #            "--tokenpool_temperature", "1.7",
+        #            "--scheduler", "cosine",
+        #            "--early_stopping", "14"
+        #            ]
+        # },
         
-        {
-            "name": "🟥 FD002-E: 末端更关注（pool=last 对照）",
-            "cmd": ["python", "train.py",
-                   "--model", "tokenpool",
-                   "--fault", "FD002",
-                   "--batch_size", "192",
-                   "--epochs", "100",
-                   "--learning_rate", "0.0008",
-                   "--weight_decay", "0.0002",
-                   "--patch", "4",
-                   "--d_model", "160",
-                   "--depth", "5",
-                   "--token_mlp_dim", "320",
-                   "--channel_mlp_dim", "160",
-                   "--dropout", "0.12",
-                   "--cnn_pool", "last",
-                   "--tokenpool_heads", "8",
-                   "--tokenpool_dropout", "0.12",
-                   "--tokenpool_temperature", "1.8",
-                   "--scheduler", "plateau",
-                   "--early_stopping", "12"
-                   ]
-        },
+        # {
+        #     "name": "🟥 FD002-E: 末端更关注（pool=last 对照）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool",
+        #            "--fault", "FD002",
+        #            "--batch_size", "192",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0002",
+        #            "--patch", "4",
+        #            "--d_model", "160",
+        #            "--depth", "5",
+        #            "--token_mlp_dim", "320",
+        #            "--channel_mlp_dim", "160",
+        #            "--dropout", "0.12",
+        #            "--cnn_pool", "last",
+        #            "--tokenpool_heads", "8",
+        #            "--tokenpool_dropout", "0.12",
+        #            "--tokenpool_temperature", "1.8",
+        #            "--scheduler", "plateau",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
     
         
-        {
-            "name": "⚡ TokenPool-3: FD004极限挑战",
-            "cmd": ["python", "train.py", 
-                   "--model", "tokenpool", 
-                   "--fault", "FD004", 
-                   "--batch_size", "128",           # FD004最复杂，小批量
-                   "--epochs", "100",                # FD004需要充分训练
-                   "--learning_rate", "0.0006",     # FD004保守学习率
-                   "--weight_decay", "0.0003",      # 强权重衰减
-                   # TokenPool参数 - 为复杂数据集优化
-                   "--patch", "5",                  # 保持10个tokens
-                   "--d_model", "160",              # 更大模型容量
-                   "--depth", "6",                  # 深层TSMixer
-                   "--token_mlp_dim", "384",        # 大MLP
-                   "--channel_mlp_dim", "192",
-                   "--dropout", "0.15",             # 强dropout防过拟合
-                   "--cnn_pool", "weighted",        # 关注后期特征
-                   "--tokenpool_heads", "8",        # 更多注意力头处理复杂模式
-                   "--tokenpool_dropout", "0.15",   
-                   "--tokenpool_temperature", "2.0", # 更高温度防塌缩
-                   "--scheduler", "cosine",
-                   "--early_stopping", "15"
-                   ]
-        },
+        # {
+        #     "name": "⚡ TokenPool-3: FD004极限挑战",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "tokenpool", 
+        #            "--fault", "FD004", 
+        #            "--batch_size", "128",           # FD004最复杂，小批量
+        #            "--epochs", "100",                # FD004需要充分训练
+        #            "--learning_rate", "0.0006",     # FD004保守学习率
+        #            "--weight_decay", "0.0003",      # 强权重衰减
+        #            # TokenPool参数 - 为复杂数据集优化
+        #            "--patch", "5",                  # 保持10个tokens
+        #            "--d_model", "160",              # 更大模型容量
+        #            "--depth", "6",                  # 深层TSMixer
+        #            "--token_mlp_dim", "384",        # 大MLP
+        #            "--channel_mlp_dim", "192",
+        #            "--dropout", "0.15",             # 强dropout防过拟合
+        #            "--cnn_pool", "weighted",        # 关注后期特征
+        #            "--tokenpool_heads", "8",        # 更多注意力头处理复杂模式
+        #            "--tokenpool_dropout", "0.15",   
+        #            "--tokenpool_temperature", "2.0", # 更高温度防塌缩
+        #            "--scheduler", "cosine",
+        #            "--early_stopping", "15"
+        #            ]
+        # },
         
         # ============================================================================
         # CNN-TSMixer vs TSMixer 对比实验 - 目标超越 11.39 RMSE (TSMixer最佳)
