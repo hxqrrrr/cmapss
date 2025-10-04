@@ -27,6 +27,286 @@ def main():
     """运行一系列实验"""
     
     experiments = [
+
+    {
+    "name": "💎 pTSM-FD002-Narrow-1: best+wd↑",
+    "cmd": ["python", "train.py",
+        "--model", "ptsmixer", "--fault", "FD002",
+        "--batch_size", "192", "--epochs", "80",
+        "--learning_rate", "0.0006", "--weight_decay", "0.0006",
+        "--pt_depth", "8", "--pt_ch_expand", "4",
+        "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+        "--pt_t_ffn_expand", "1",
+        "--pt_droppath", "0.25", "--pt_branch_dropout", "0.12",
+        "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+        "--scheduler", "cosine", "--early_stopping", "15"
+    ]
+    },
+    {
+        "name": "💎 pTSM-FD002-Narrow-2: dp↑0.28",
+        "cmd": ["python", "train.py",
+            "--model", "ptsmixer", "--fault", "FD002",
+            "--batch_size", "192", "--epochs", "80",
+            "--learning_rate", "0.0006", "--weight_decay", "0.0005",
+            "--pt_depth", "8", "--pt_ch_expand", "4",
+            "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+            "--pt_t_ffn_expand", "1",
+            "--pt_droppath", "0.28", "--pt_branch_dropout", "0.12",
+            "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+            "--scheduler", "cosine", "--early_stopping", "15"
+        ]
+    },
+    {
+        "name": "💎 pTSM-FD002-Narrow-3: lr↑7e-4",
+        "cmd": ["python", "train.py",
+            "--model", "ptsmixer", "--fault", "FD002",
+            "--batch_size", "192", "--epochs", "80",
+            "--learning_rate", "0.0007", "--weight_decay", "0.0005",
+            "--pt_depth", "8", "--pt_ch_expand", "4",
+            "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+            "--pt_t_ffn_expand", "1",
+            "--pt_droppath", "0.25", "--pt_branch_dropout", "0.10",
+            "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+            "--scheduler", "cosine", "--early_stopping", "15"
+        ]
+    },
+    {
+        "name": "💎 pTSM-FD002-Narrow-4: ker=11 对照",
+        "cmd": ["python", "train.py",
+            "--model", "ptsmixer", "--fault", "FD002",
+            "--batch_size", "192", "--epochs", "80",
+            "--learning_rate", "0.0006", "--weight_decay", "0.0005",
+            "--pt_depth", "8", "--pt_ch_expand", "4",
+            "--pt_t_kernel", "11", "--pt_t_dilation", "2",
+            "--pt_t_ffn_expand", "1",
+            "--pt_droppath", "0.25", "--pt_branch_dropout", "0.12",
+            "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+            "--scheduler", "cosine", "--early_stopping", "15"
+        ]
+    },
+    {
+        "name": "💎 pTSM-FD002-Narrow-5: wd=2e-4 + dp=0.30",
+        "cmd": ["python", "train.py",
+            "--model", "ptsmixer", "--fault", "FD002",
+            "--batch_size", "192", "--epochs", "80",
+            "--learning_rate", "0.0006", "--weight_decay", "0.0002",
+            "--pt_depth", "8", "--pt_ch_expand", "4",
+            "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+            "--pt_t_ffn_expand", "1",
+            "--pt_droppath", "0.30", "--pt_branch_dropout", "0.12",
+            "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+            "--scheduler", "cosine", "--early_stopping", "18"
+        ]
+    },
+    {
+        "name": "💎 pTSM-FD002-Narrow-6: depth=7 稳健性",
+        "cmd": ["python", "train.py",
+            "--model", "ptsmixer", "--fault", "FD002",
+            "--batch_size", "192", "--epochs", "80",
+            "--learning_rate", "0.0006", "--weight_decay", "0.0005",
+            "--pt_depth", "7", "--pt_ch_expand", "4",
+            "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+            "--pt_t_ffn_expand", "1",
+            "--pt_droppath", "0.24", "--pt_branch_dropout", "0.12",
+            "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+            "--scheduler", "cosine", "--early_stopping", "15"
+        ]
+    },
+    {
+        "name": "💎 pTSM-FD002-Narrow-7: branch-drop=0.15",
+        "cmd": ["python", "train.py",
+            "--model", "ptsmixer", "--fault", "FD002",
+            "--batch_size", "192", "--epochs", "80",
+            "--learning_rate", "0.0006", "--weight_decay", "0.0005",
+            "--pt_depth", "8", "--pt_ch_expand", "4",
+            "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+            "--pt_t_ffn_expand", "1",
+            "--pt_droppath", "0.26", "--pt_branch_dropout", "0.15",
+            "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+            "--scheduler", "cosine", "--early_stopping", "15"
+        ]
+    }
+    #          # 1) 基线（你当前最优 15.48）
+    # {
+    #     "name": "pTSM-FD002-BASE-avg_dp0.20",
+    #     "cmd": ["python", "train.py",
+    #             "--model", "ptsmixer",
+    #             "--fault", "FD002",
+    #             "--batch_size", "192",
+    #             "--epochs", "60",
+    #             "--learning_rate", "8e-4",
+    #             "--weight_decay", "2e-4",
+    #             "--pt_depth", "6",
+    #             "--pt_ch_expand", "4",
+    #             "--pt_t_kernel", "11",
+    #             "--pt_t_dilation", "2",
+    #             "--pt_t_ffn_expand", "1",
+    #             "--pt_droppath", "0.20",
+    #             "--pt_branch_dropout", "0.10",
+    #             "--pt_pooling", "avg",
+    #             "--pt_input_dropout", "0.00",
+    #             "--scheduler", "cosine",
+    #             "--early_stopping", "12"]
+    # },
+    #  # 2) 仅增强权重衰减（压末端过拟合）
+    # {
+    #     "name": "pTSM-FD002-wd5e-4_lr8e-4",
+    #     "cmd": ["python", "train.py",
+    #             "--model", "ptsmixer",
+    #             "--fault", "FD002",
+    #             "--batch_size", "192",
+    #             "--epochs", "60",
+    #             "--learning_rate", "8e-4",
+    #             "--weight_decay", "5e-4",
+    #             "--pt_depth", "6",
+    #             "--pt_ch_expand", "4",
+    #             "--pt_t_kernel", "11",
+    #             "--pt_t_dilation", "2",
+    #             "--pt_t_ffn_expand", "1",
+    #             "--pt_droppath", "0.20",
+    #             "--pt_branch_dropout", "0.10",
+    #             "--pt_pooling", "avg",
+    #             "--pt_input_dropout", "0.00",
+    #             "--scheduler", "cosine",
+    #             "--early_stopping", "12"]
+    # },
+    # # 3) wd↑ + lr↓ + plateau（更稳的尾期微调）
+    # {
+    #     "name": "pTSM-FD002-wd5e-4_lr6e-4_plateau",
+    #     "cmd": ["python", "train.py",
+    #             "--model", "ptsmixer",
+    #             "--fault", "FD002",
+    #             "--batch_size", "192",
+    #             "--epochs", "60",
+    #             "--learning_rate", "6e-4",
+    #             "--weight_decay", "5e-4",
+    #             "--pt_depth", "6",
+    #             "--pt_ch_expand", "4",
+    #             "--pt_t_kernel", "11",
+    #             "--pt_t_dilation", "2",
+    #             "--pt_t_ffn_expand", "1",
+    #             "--pt_droppath", "0.20",
+    #             "--pt_branch_dropout", "0.10",
+    #             "--pt_pooling", "avg",
+    #             "--pt_input_dropout", "0.00",
+    #             "--scheduler", "plateau",
+    #             "--early_stopping", "12"]
+    # },
+
+    # # 4) 感受野对照：kernel 9 / dilation 2（更平滑）
+    # {
+    #     "name": "pTSM-FD002-ker9_dil2",
+    #     "cmd": ["python", "train.py",
+    #             "--model", "ptsmixer",
+    #             "--fault", "FD002",
+    #             "--batch_size", "192",
+    #             "--epochs", "60",
+    #             "--learning_rate", "8e-4",
+    #             "--weight_decay", "2e-4",
+    #             "--pt_depth", "6",
+    #             "--pt_ch_expand", "4",
+    #             "--pt_t_kernel", "9",
+    #             "--pt_t_dilation", "2",
+    #             "--pt_t_ffn_expand", "1",
+    #             "--pt_droppath", "0.20",
+    #             "--pt_branch_dropout", "0.10",
+    #             "--pt_pooling", "avg",
+    #             "--pt_input_dropout", "0.00",
+    #             "--scheduler", "cosine",
+    #             "--early_stopping", "12"]
+    # },
+
+    # # 5) 感受野对照：kernel 7 / dilation 3（更大有效视野、低参数）
+    # {
+    #     "name": "pTSM-FD002-ker7_dil3",
+    #     "cmd": ["python", "train.py",
+    #             "--model", "ptsmixer",
+    #             "--fault", "FD002",
+    #             "--batch_size", "192",
+    #             "--epochs", "60",
+    #             "--learning_rate", "8e-4",
+    #             "--weight_decay", "2e-4",
+    #             "--pt_depth", "6",
+    #             "--pt_ch_expand", "4",
+    #             "--pt_t_kernel", "7",
+    #             "--pt_t_dilation", "3",
+    #             "--pt_t_ffn_expand", "1",
+    #             "--pt_droppath", "0.20",
+    #             "--pt_branch_dropout", "0.10",
+    #             "--pt_pooling", "avg",
+    #             "--pt_input_dropout", "0.00",
+    #             "--scheduler", "cosine",
+    #             "--early_stopping", "12"]
+    # },
+
+    # # 6) 深度↑ + DropPath↑（表征更强 + 正则配套）
+    # {
+    #     "name": "pTSM-FD002-depth8_dp0.25",
+    #     "cmd": ["python", "train.py",
+    #             "--model", "ptsmixer",
+    #             "--fault", "FD002",
+    #             "--batch_size", "192",
+    #             "--epochs", "80",
+    #             "--learning_rate", "6e-4",
+    #             "--weight_decay", "5e-4",
+    #             "--pt_depth", "8",
+    #             "--pt_ch_expand", "4",
+    #             "--pt_t_kernel", "9",
+    #             "--pt_t_dilation", "2",
+    #             "--pt_t_ffn_expand", "1",
+    #             "--pt_droppath", "0.25",
+    #             "--pt_branch_dropout", "0.10",
+    #             "--pt_pooling", "avg",
+    #             "--pt_input_dropout", "0.00",
+    #             "--scheduler", "cosine",
+    #             "--early_stopping", "15"]
+    # },
+
+    # # 7) 通道扩展↑（ch_expand=6），保留正则
+    # {
+    #     "name": "pTSM-FD002-chx6_dp0.20",
+    #     "cmd": ["python", "train.py",
+    #             "--model", "ptsmixer",
+    #             "--fault", "FD002",
+    #             "--batch_size", "192",
+    #             "--epochs", "60",
+    #             "--learning_rate", "8e-4",
+    #             "--weight_decay", "2e-4",
+    #             "--pt_depth", "6",
+    #             "--pt_ch_expand", "6",
+    #             "--pt_t_kernel", "11",
+    #             "--pt_t_dilation", "2",
+    #             "--pt_t_ffn_expand", "1",
+    #             "--pt_droppath", "0.20",
+    #             "--pt_branch_dropout", "0.10",
+    #             "--pt_pooling", "avg",
+    #             "--pt_input_dropout", "0.00",
+    #             "--scheduler", "cosine",
+    #             "--early_stopping", "12"]
+    # },
+
+    # # 8) “稳健拉低”组合（wd↑ + lr↓ + ker9 + plateau）
+    # {
+    #     "name": "pTSM-FD002-steady-wd5e-4_lr6e-4_ker9_plateau",
+    #     "cmd": ["python", "train.py",
+    #             "--model", "ptsmixer",
+    #             "--fault", "FD002",
+    #             "--batch_size", "192",
+    #             "--epochs", "60",
+    #             "--learning_rate", "6e-4",
+    #             "--weight_decay", "5e-4",
+    #             "--pt_depth", "6",
+    #             "--pt_ch_expand", "4",
+    #             "--pt_t_kernel", "9",
+    #             "--pt_t_dilation", "2",
+    #             "--pt_t_ffn_expand", "1",
+    #             "--pt_droppath", "0.20",
+    #             "--pt_branch_dropout", "0.10",
+    #             "--pt_pooling", "avg",
+    #             "--pt_input_dropout", "0.00",
+    #             "--scheduler", "plateau",
+    #             "--early_stopping", "12"]
+    # },
         
         # ============================================================================
         # TokenPool 纯注意力池化实验 - 无CNN前端，直接学习时间特征
@@ -56,127 +336,127 @@ def main():
         #            ]
         # },
         
-        {
-            "name": "🟦 FD002-B: 多头分工（heads=10, 温度2.0）",
-            "cmd": ["python", "train.py",
-                   "--model", "tokenpool",
-                   "--fault", "FD002",
-                   "--batch_size", "192",
-                   "--epochs", "100",
-                   "--learning_rate", "0.0008",
-                   "--weight_decay", "0.0002",
-                   "--patch", "5",
-                   "--d_model", "200",
-                   "--depth", "5",
-                   "--token_mlp_dim", "400",
-                   "--channel_mlp_dim", "200",
-                   "--dropout", "0.12",
-                   "--cnn_pool", "weighted",
-                   "--tokenpool_heads", "10",
-                   "--tokenpool_dropout", "0.12",
-                   "--tokenpool_temperature", "2.0",
-                   "--scheduler", "cosine",
-                   "--early_stopping", "12"
-                   ]
-        },
+        # {
+        #     "name": "🟦 FD002-B: 多头分工（heads=10, 温度2.0）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool",
+        #            "--fault", "FD002",
+        #            "--batch_size", "192",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0002",
+        #            "--patch", "5",
+        #            "--d_model", "200",
+        #            "--depth", "5",
+        #            "--token_mlp_dim", "400",
+        #            "--channel_mlp_dim", "200",
+        #            "--dropout", "0.12",
+        #            "--cnn_pool", "weighted",
+        #            "--tokenpool_heads", "10",
+        #            "--tokenpool_dropout", "0.12",
+        #            "--tokenpool_temperature", "2.0",
+        #            "--scheduler", "cosine",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
         
-        {
-            "name": "🟨 FD002-C: 更细粒度上限（patch=3）",
-            "cmd": ["python", "train.py",
-                   "--model", "tokenpool",
-                   "--fault", "FD002",
-                   "--batch_size", "160",
-                   "--epochs", "100",
-                   "--learning_rate", "0.0008",
-                   "--weight_decay", "0.0002",
-                   "--patch", "3",
-                   "--d_model", "160",
-                   "--depth", "5",
-                   "--token_mlp_dim", "384",
-                   "--channel_mlp_dim", "160",
-                   "--dropout", "0.14",
-                   "--cnn_pool", "weighted",
-                   "--tokenpool_heads", "8",
-                   "--tokenpool_dropout", "0.14",
-                   "--tokenpool_temperature", "1.9",
-                   "--scheduler", "cosine",
-                   "--early_stopping", "12"
-                   ]
-        },
+        # {
+        #     "name": "🟨 FD002-C: 更细粒度上限（patch=3）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool",
+        #            "--fault", "FD002",
+        #            "--batch_size", "160",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0002",
+        #            "--patch", "3",
+        #            "--d_model", "160",
+        #            "--depth", "5",
+        #            "--token_mlp_dim", "384",
+        #            "--channel_mlp_dim", "160",
+        #            "--dropout", "0.14",
+        #            "--cnn_pool", "weighted",
+        #            "--tokenpool_heads", "8",
+        #            "--tokenpool_dropout", "0.14",
+        #            "--tokenpool_temperature", "1.9",
+        #            "--scheduler", "cosine",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
         
-        {
-            "name": "🟪 FD002-D: 大容量稳态（d_model↑, depth↑）",
-            "cmd": ["python", "train.py",
-                   "--model", "tokenpool",
-                   "--fault", "FD002",
-                   "--batch_size", "160",
-                   "--epochs", "100",
-                   "--learning_rate", "0.0007",
-                   "--weight_decay", "0.00025",
-                   "--patch", "5",
-                   "--d_model", "192",
-                   "--depth", "6",
-                   "--token_mlp_dim", "384",
-                   "--channel_mlp_dim", "192",
-                   "--dropout", "0.13",
-                   "--cnn_pool", "weighted",
-                   "--tokenpool_heads", "8",
-                   "--tokenpool_dropout", "0.12",
-                   "--tokenpool_temperature", "1.7",
-                   "--scheduler", "cosine",
-                   "--early_stopping", "14"
-                   ]
-        },
+        # {
+        #     "name": "🟪 FD002-D: 大容量稳态（d_model↑, depth↑）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool",
+        #            "--fault", "FD002",
+        #            "--batch_size", "160",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0007",
+        #            "--weight_decay", "0.00025",
+        #            "--patch", "5",
+        #            "--d_model", "192",
+        #            "--depth", "6",
+        #            "--token_mlp_dim", "384",
+        #            "--channel_mlp_dim", "192",
+        #            "--dropout", "0.13",
+        #            "--cnn_pool", "weighted",
+        #            "--tokenpool_heads", "8",
+        #            "--tokenpool_dropout", "0.12",
+        #            "--tokenpool_temperature", "1.7",
+        #            "--scheduler", "cosine",
+        #            "--early_stopping", "14"
+        #            ]
+        # },
         
-        {
-            "name": "🟥 FD002-E: 末端更关注（pool=last 对照）",
-            "cmd": ["python", "train.py",
-                   "--model", "tokenpool",
-                   "--fault", "FD002",
-                   "--batch_size", "192",
-                   "--epochs", "100",
-                   "--learning_rate", "0.0008",
-                   "--weight_decay", "0.0002",
-                   "--patch", "4",
-                   "--d_model", "160",
-                   "--depth", "5",
-                   "--token_mlp_dim", "320",
-                   "--channel_mlp_dim", "160",
-                   "--dropout", "0.12",
-                   "--cnn_pool", "last",
-                   "--tokenpool_heads", "8",
-                   "--tokenpool_dropout", "0.12",
-                   "--tokenpool_temperature", "1.8",
-                   "--scheduler", "plateau",
-                   "--early_stopping", "12"
-                   ]
-        },
+        # {
+        #     "name": "🟥 FD002-E: 末端更关注（pool=last 对照）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool",
+        #            "--fault", "FD002",
+        #            "--batch_size", "192",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0002",
+        #            "--patch", "4",
+        #            "--d_model", "160",
+        #            "--depth", "5",
+        #            "--token_mlp_dim", "320",
+        #            "--channel_mlp_dim", "160",
+        #            "--dropout", "0.12",
+        #            "--cnn_pool", "last",
+        #            "--tokenpool_heads", "8",
+        #            "--tokenpool_dropout", "0.12",
+        #            "--tokenpool_temperature", "1.8",
+        #            "--scheduler", "plateau",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
     
         
-        {
-            "name": "⚡ TokenPool-3: FD004极限挑战",
-            "cmd": ["python", "train.py", 
-                   "--model", "tokenpool", 
-                   "--fault", "FD004", 
-                   "--batch_size", "128",           # FD004最复杂，小批量
-                   "--epochs", "100",                # FD004需要充分训练
-                   "--learning_rate", "0.0006",     # FD004保守学习率
-                   "--weight_decay", "0.0003",      # 强权重衰减
-                   # TokenPool参数 - 为复杂数据集优化
-                   "--patch", "5",                  # 保持10个tokens
-                   "--d_model", "160",              # 更大模型容量
-                   "--depth", "6",                  # 深层TSMixer
-                   "--token_mlp_dim", "384",        # 大MLP
-                   "--channel_mlp_dim", "192",
-                   "--dropout", "0.15",             # 强dropout防过拟合
-                   "--cnn_pool", "weighted",        # 关注后期特征
-                   "--tokenpool_heads", "8",        # 更多注意力头处理复杂模式
-                   "--tokenpool_dropout", "0.15",   
-                   "--tokenpool_temperature", "2.0", # 更高温度防塌缩
-                   "--scheduler", "cosine",
-                   "--early_stopping", "15"
-                   ]
-        },
+        # {
+        #     "name": "⚡ TokenPool-3: FD004极限挑战",
+        #     "cmd": ["python", "train.py", 
+        #            "--model", "tokenpool", 
+        #            "--fault", "FD004", 
+        #            "--batch_size", "128",           # FD004最复杂，小批量
+        #            "--epochs", "100",                # FD004需要充分训练
+        #            "--learning_rate", "0.0006",     # FD004保守学习率
+        #            "--weight_decay", "0.0003",      # 强权重衰减
+        #            # TokenPool参数 - 为复杂数据集优化
+        #            "--patch", "5",                  # 保持10个tokens
+        #            "--d_model", "160",              # 更大模型容量
+        #            "--depth", "6",                  # 深层TSMixer
+        #            "--token_mlp_dim", "384",        # 大MLP
+        #            "--channel_mlp_dim", "192",
+        #            "--dropout", "0.15",             # 强dropout防过拟合
+        #            "--cnn_pool", "weighted",        # 关注后期特征
+        #            "--tokenpool_heads", "8",        # 更多注意力头处理复杂模式
+        #            "--tokenpool_dropout", "0.15",   
+        #            "--tokenpool_temperature", "2.0", # 更高温度防塌缩
+        #            "--scheduler", "cosine",
+        #            "--early_stopping", "15"
+        #            ]
+        # },
         
         # ============================================================================
         # CNN-TSMixer vs TSMixer 对比实验 - 目标超越 11.39 RMSE (TSMixer最佳)

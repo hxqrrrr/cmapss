@@ -17,6 +17,8 @@ from models.ellefsen_rbm_lstm_model import EllefsenRBMLSTMModel
 from models.cnn_tsmixer_model import CNNMixerRULModel
 from models.tsmixer_cnn_gated import CNNMixerGatedRULModel
 from models.tsmixer_gated_tokenpool import TokenPoolRULModel
+from models.parallel_tsmixer_rul import ParallelTSMixerRUL  # NEW: pTSMixer 双支并行
+
 
 
 def parse_args():
@@ -24,7 +26,7 @@ def parse_args():
 
     # 模型选择
     parser.add_argument("--model", type=str, default="transformer",
-                        choices=["tsmixer", "transformer", "bilstm", "rbmlstm", "cnn_tsmixer", "cnn_tsmixer_gated", "tokenpool"], help="选择模型架构")
+                        choices=["tsmixer", "transformer", "bilstm", "rbmlstm", "cnn_tsmixer", "cnn_tsmixer_gated", "tokenpool", "ptsmixer"], help="选择模型架构")
 
     # 数据集配置
     parser.add_argument("--fault", type=str, default="FD001",
@@ -95,6 +97,18 @@ def parse_args():
     parser.add_argument("--tokenpool_dropout", type=float, default=0.0, help="TokenPool注意力dropout")
     parser.add_argument("--tokenpool_temperature", type=float, default=1.5, help="TokenPool注意力温度")
 
+    # pTSMixer（并行时间/特征双支）特定参数
+    parser.add_argument("--pt_depth", type=int, default=6, help="pTSMixer Block 层数")
+    parser.add_argument("--pt_ch_expand", type=int, default=4, help="特征分支 MLP 扩展倍数")
+    parser.add_argument("--pt_t_kernel", type=int, default=7, help="时间分支深度可分离卷积核大小")
+    parser.add_argument("--pt_t_dilation", type=int, default=2, help="时间分支卷积膨胀系数")
+    parser.add_argument("--pt_t_ffn_expand", type=int, default=1, help="时间分支 pointwise FFN 扩展倍数")
+    parser.add_argument("--pt_droppath", type=float, default=0.10, help="分层 DropPath 最大比例")
+    parser.add_argument("--pt_branch_dropout", type=float, default=0.00, help="分支内的 dropout")
+    parser.add_argument("--pt_pooling", type=str, default="token", choices=["token", "avg"], help="pTSMixer 头部池化方式")
+    parser.add_argument("--pt_input_dropout", type=float, default=0.00, help="输入层 dropout")
+
+
     # 学习率调度器
     parser.add_argument("--scheduler", type=str, default="onecycle",
                         choices=["onecycle", "plateau", "cosine"], help="学习率调度器")
@@ -153,6 +167,8 @@ def create_datasets(args):
         data_dir=args.data_dir, fault_mode=args.fault, split="train", 
         preset="custom", features=features_mode,
         window_size=_xu_window_for(args.fault), stride=1,
+        # window_size=120, stride=1,
+
         norm="minmax", label_mode="piecewise_125"
     )
     test_set = CMAPSSDataset(
@@ -249,6 +265,21 @@ def create_model(args, input_size, seq_len):
             tokenpool_dropout=args.tokenpool_dropout,
             tokenpool_temperature=args.tokenpool_temperature
         )
+    elif args.model == "ptsmixer":
+        model = ParallelTSMixerRUL(
+            input_size=input_size,
+            seq_len=seq_len,
+            depth=args.pt_depth,
+            ch_expand=args.pt_ch_expand,
+            t_kernel=args.pt_t_kernel,
+            t_dilation=args.pt_t_dilation,
+            t_ffn_expand=args.pt_t_ffn_expand,
+            droppath_base=args.pt_droppath,
+            branch_dropout=args.pt_branch_dropout,
+            pooling=args.pt_pooling,
+            input_dropout=args.pt_input_dropout,
+        )
+
     else:
         raise ValueError(f"未支持的模型类型: {args.model}")
     return model
@@ -356,6 +387,21 @@ def main():
         logger.info(f"TokenPool注意力dropout: {args.tokenpool_dropout}")
         logger.info(f"TokenPool注意力温度: {args.tokenpool_temperature}")
         logger.info(f"Dropout: {args.dropout}")
+
+
+    elif args.model == "ptsmixer":
+        logger.info("--- pTSMixer（并行双支） 特定参数 ---")
+        logger.info(f"深度: {args.pt_depth}")
+        logger.info(f"特征分支扩展倍数: {args.pt_ch_expand}")
+        logger.info(f"时间核大小: {args.pt_t_kernel}")
+        logger.info(f"时间膨胀系数: {args.pt_t_dilation}")
+        logger.info(f"时间支 FFN 扩展: {args.pt_t_ffn_expand}")
+        logger.info(f"DropPath最大比率: {args.pt_droppath}")
+        logger.info(f"分支内dropout: {args.pt_branch_dropout}")
+        logger.info(f"池化方式: {args.pt_pooling}")
+        logger.info(f"输入dropout: {args.pt_input_dropout}")
+
+        
     
     logger.info("="*80)
 
@@ -370,15 +416,37 @@ def main():
     model = create_model(args, train_set.n_features, train_set.window_size)
 
     # 编译
+    # compile_kwargs = {"learning_rate": args.learning_rate, "weight_decay": args.weight_decay}
+    # if args.scheduler == "onecycle":
+    #     compile_kwargs.update({
+    #         "scheduler": "onecycle",
+    #         "epochs": args.epochs,
+    #         "steps_per_epoch": len(train_loader)
+    #     })
+    # elif args.scheduler in ["plateau", "cosine"]:
+    #     compile_kwargs["scheduler"] = args.scheduler
+
+    # model.compile(**compile_kwargs)
+
     compile_kwargs = {"learning_rate": args.learning_rate, "weight_decay": args.weight_decay}
-    if args.scheduler == "onecycle":
-        compile_kwargs.update({
-            "scheduler": "onecycle",
-            "epochs": args.epochs,
-            "steps_per_epoch": len(train_loader)
-        })
-    elif args.scheduler in ["plateau", "cosine"]:
-        compile_kwargs["scheduler"] = args.scheduler
+
+    if args.model == "ptsmixer":
+        # pTSMixer 内置: cosine / plateau / none
+        if args.scheduler == "onecycle":
+            logging.getLogger(__name__).info("pTSMixer 暂不支持 onecycle，已自动切换到 cosine 调度器。")
+            compile_kwargs["scheduler"] = "cosine"
+        else:
+            compile_kwargs["scheduler"] = args.scheduler  # 'cosine' or 'plateau' 或 'none'
+    else:
+        # 其它模型保持你原来的逻辑
+        if args.scheduler == "onecycle":
+            compile_kwargs.update({
+                "scheduler": "onecycle",
+                "epochs": args.epochs,
+                "steps_per_epoch": len(train_loader)
+            })
+        elif args.scheduler in ["plateau", "cosine"]:
+            compile_kwargs["scheduler"] = args.scheduler
 
     model.compile(**compile_kwargs)
 
@@ -501,6 +569,12 @@ def main():
     elif args.model == "tokenpool":
         config_summary = f"TokenPool{args.tokenpool_heads}H-T{args.tokenpool_temperature}-TSMixer{args.d_model}x{args.depth}P{args.patch}-{args.cnn_pool}"
         logger.info(f"架构摘要: {config_summary}")
+    elif args.model == "ptsmixer":
+        config_summary = (f"pTSMixer-Depth{args.pt_depth}"
+                        f"-Tker{args.pt_t_kernel}Dil{args.pt_t_dilation}"
+                        f"-Cexp{args.pt_ch_expand}-DP{args.pt_droppath}-{args.pt_pooling}")
+        logger.info(f"架构摘要: {config_summary}")
+    
     
     logger.info("="*80)
     
