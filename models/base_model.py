@@ -1,4 +1,4 @@
-# base_model.py
+# models/base_model.py
 import torch
 import torch.nn as nn
 from abc import ABC, abstractmethod
@@ -25,91 +25,121 @@ class BaseRULModel(ABC):
     # --------- 必须由子类实现的方法 ---------
     @abstractmethod
     def build_model(self) -> nn.Module:
-        """定义具体模型结构 (nn.Module)"""
         pass
 
     @abstractmethod
     def compile(self, learning_rate: float, weight_decay: float, **kwargs):
-        """设定优化器 & 调度器"""
         pass
 
+    # ======================== 强化版训练：AMP + 梯度累积 ========================
     def train_model(self, train_loader, val_loader=None,
-               criterion: Optional[Any] = None, epochs: int = 20,
-               test_dataset_for_last=None, early_stopping_patience=7):
-        """默认训练流程，子类可重写
-        
-        Returns:
-            dict: 包含最佳验证性能的字典，如果启用早停则返回最佳结果，否则返回最终结果
+                    criterion: Optional[Any] = None, epochs: int = 20,
+                    test_dataset_for_last=None, early_stopping_patience=7):
         """
+        默认训练流程（已增强：AMP + 梯度累积 + 稳健的 scheduler.step 时机）
+        """
+        import math
         if criterion is None:
-            criterion = nn.MSELoss()
+            criterion = nn.MSELoss(reduction="mean")
 
-        # 早停机制
+        # 配置：AMP & 梯度累积（从子类/外部 hint 读取，未设置则使用默认）
+        accum_steps = max(1, int(getattr(self, "accum_steps", 1)))
+        use_amp = bool(getattr(self, "use_amp", True) and torch.cuda.is_available())
+        amp_dtype = (
+            torch.bfloat16
+            if hasattr(torch.cuda, "is_bf16_supported") and torch.cuda.is_bf16_supported()
+            else torch.float16
+        )
+        # 新 API
+        scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
+
+        # 调度器类型判定
+        reduce_on_plateau = isinstance(
+            self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau
+        )
+        per_step_classes = (
+            torch.optim.lr_scheduler.OneCycleLR,
+            torch.optim.lr_scheduler.SequentialLR,
+        )
+        step_sched_each_step = isinstance(self.scheduler, per_step_classes)
+
+        # 早停
         best_val_loss = float('inf')
         patience_counter = 0
         best_epoch = 0
-        
+
         self.model.train()
+        if self.optimizer is None:
+            raise RuntimeError("请先在 model.compile(...) 中设置 optimizer")
+
         for epoch in range(1, epochs + 1):
-            running_loss = 0.0
-            for data, target in train_loader:
+            running_mse, seen = 0.0, 0
+            self.model.train()
+            self.optimizer.zero_grad(set_to_none=True)
+
+            for it, (data, target) in enumerate(train_loader, start=1):
                 data, target = self.to_device(data, target)
                 target = target.view(-1)
 
-                self.optimizer.zero_grad(set_to_none=True)
-                pred = self.model(data).view(-1)
-                loss = criterion(pred, target)
-                loss.backward()
-                nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
-                self.optimizer.step()
+                # 新 API
+                with torch.amp.autocast("cuda", enabled=use_amp, dtype=amp_dtype):
+                    pred = self.model(data).view(-1)
+                    loss = criterion(pred, target) / accum_steps
 
-                if self.scheduler is not None:
-                    if hasattr(self.scheduler, "step") and not isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                        self.scheduler.step()
+                with torch.no_grad():
+                    running_mse += torch.sum((pred.detach() - target.detach()) ** 2).item()
+                    seen += target.numel()
 
-                running_loss += loss.item()
+                scaler.scale(loss).backward()
 
-            # 训练损失
-            train_rmse = (running_loss / max(1, len(train_loader))) ** 0.5
-            
-            # 验证全局RMSE
+                if (it % accum_steps == 0) or (it == len(train_loader)):
+                    scaler.unscale_(self.optimizer)
+                    nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+                    scaler.step(self.optimizer)
+                    scaler.update()
+                    self.optimizer.zero_grad(set_to_none=True)
+
+                if step_sched_each_step and hasattr(self.scheduler, "step"):
+                    self.scheduler.step()
+
+            train_rmse = math.sqrt(running_mse / max(1, seen))
+
+            # 验证
             val_rmse_global = float('nan')
             if val_loader is not None:
                 val_results = self.evaluate(val_loader)
                 val_rmse_global = val_results.get('rmse', float('nan'))
-            
-            # 最后窗口RMSE和Score
+
             val_rmse_last, val_score_last = float('nan'), float('nan')
             if test_dataset_for_last is not None:
                 val_rmse_last, val_score_last = self.evaluate_last_window(test_dataset_for_last)
-            
-            # 确保模型回到训练模式（重要：LSTM等RNN模型需要这个）
-            # 在验证后重新设置训练模式，对所有模型都是安全的
+
             self.model.train()
-            
-            # 获取学习率
+
             lr = self.optimizer.param_groups[0]["lr"] if self.optimizer else 0.0
-            
-            # 统一的日志格式 - 每个模型都必须记录这些指标
-            self.log_training_metrics(epoch, epochs, train_rmse, val_rmse_global, 
-                                    val_rmse_last, val_score_last, lr)
-            
-            # ReduceLROnPlateau调度器需要在epoch结束后更新
-            if self.scheduler is not None and isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                metric = val_rmse_last if not torch.isnan(torch.tensor(val_rmse_last)) else val_rmse_global
-                if not torch.isnan(torch.tensor(metric)):
-                    self.scheduler.step(metric)
-            
-            # 早停机制（仅在early_stopping_patience > 0时启用）
+            self.log_training_metrics(
+                epoch, epochs, train_rmse,
+                val_rmse_global, val_rmse_last, val_score_last, lr
+            )
+
+            # epoch 调度
+            if self.scheduler is not None:
+                if reduce_on_plateau:
+                    metric = val_rmse_last if not torch.isnan(torch.tensor(val_rmse_last)) else val_rmse_global
+                    if not torch.isnan(torch.tensor(metric)):
+                        self.scheduler.step(metric)
+                else:
+                    if (not step_sched_each_step) and hasattr(self.scheduler, "step"):
+                        self.scheduler.step()
+
+            # 早停
             if early_stopping_patience > 0:
-                current_val_loss = val_rmse_last if not torch.isnan(torch.tensor(val_rmse_last)) else val_rmse_global
-                if not torch.isnan(torch.tensor(current_val_loss)):
-                    if current_val_loss < best_val_loss:
-                        best_val_loss = current_val_loss
+                current_val = val_rmse_last if not torch.isnan(torch.tensor(val_rmse_last)) else val_rmse_global
+                if not torch.isnan(torch.tensor(current_val)):
+                    if current_val < best_val_loss:
+                        best_val_loss = current_val
                         patience_counter = 0
                         best_epoch = epoch
-                        
-                        # 保存最佳指标
                         self.best_metrics = {
                             'train_rmse': train_rmse,
                             'val_rmse_global': val_rmse_global,
@@ -118,7 +148,6 @@ class BaseRULModel(ABC):
                             'best_epoch': epoch,
                             'learning_rate': lr
                         }
-                        
                         print(f"📈 New best validation RMSE: {best_val_loss:.4f}")
                     else:
                         patience_counter += 1
@@ -126,22 +155,18 @@ class BaseRULModel(ABC):
                             print(f" Early stopping triggered after {epoch} epochs (patience: {early_stopping_patience})")
                             print(f" Best validation RMSE: {best_val_loss:.4f}")
                             break
-        
-        # 返回最佳验证结果
+
         if early_stopping_patience > 0 and best_val_loss != float('inf'):
             return {
-                "best_val_rmse": best_val_loss, 
+                "best_val_rmse": best_val_loss,
                 "early_stopped": True,
                 "best_epoch": best_epoch
             }
         else:
-            # 如果没有早停或没有验证数据，返回最终验证结果
             final_results = {}
             if val_loader is not None:
                 final_val_results = self.evaluate(val_loader)
                 final_results["final_val_rmse"] = final_val_results.get('rmse', float('nan'))
-                
-                # 保存最终指标
                 self.best_metrics = {
                     'train_rmse': train_rmse,
                     'val_rmse_global': final_val_results.get('rmse', float('nan')),
@@ -150,79 +175,64 @@ class BaseRULModel(ABC):
                     'final_epoch': epochs,
                     'learning_rate': lr
                 }
-                
             final_results["early_stopped"] = False
             return final_results
 
+    # ======================== 评估：推理也用 AMP 提速 ========================
     def evaluate(self, test_loader) -> Dict[str, float]:
-        """默认测试集评估"""
         self.model.eval()
         mse, n = 0.0, 0
+        use_amp = bool(getattr(self, "use_amp", True) and torch.cuda.is_available())
+        amp_dtype = (
+            torch.bfloat16
+            if hasattr(torch.cuda, "is_bf16_supported") and torch.cuda.is_bf16_supported()
+            else torch.float16
+        )
         with torch.no_grad():
-            for data, target in test_loader:
-                data, target = self.to_device(data, target)
-                target = target.view(-1)
-                pred = self.model(data).view(-1)
-                mse += torch.sum((pred - target) ** 2).item()
-                n += target.numel()
+            with torch.amp.autocast("cuda", enabled=use_amp, dtype=amp_dtype):
+                for data, target in test_loader:
+                    data, target = self.to_device(data, target)
+                    target = target.view(-1)
+                    pred = self.model(data).view(-1)
+                    mse += torch.sum((pred - target) ** 2).item()
+                    n += target.numel()
         rmse = (mse / max(1, n)) ** 0.5
         return {"rmse": rmse}
 
-
-    # --------- 通用工具函数 (子类可复用) ---------
+    # --------- 通用工具函数 ---------
     def to_device(self, data, target):
-        """统一的数据迁移接口"""
         data = data.to(self.device, non_blocking=True)
         target = target.to(self.device, non_blocking=True)
         return data, target
 
-    def log_training_metrics(self, epoch: int, total_epochs: int, 
-                           train_rmse: float, val_rmse_global: float,
-                           val_rmse_last: float, val_score_last: float, lr: float):
-        """
-        统一的训练指标日志记录格式 - 每个模型都必须记录这些指标
-        Args:
-            epoch: 当前轮次
-            total_epochs: 总轮次
-            train_rmse: 训练集RMSE
-            val_rmse_global: 验证集全局RMSE (cycles)
-            val_rmse_last: 验证集最后窗口RMSE (cycles) 
-            val_score_last: 验证集最后窗口PHM08 Score
-            lr: 当前学习率
-        """
+    def log_training_metrics(self, epoch: int, total_epochs: int,
+                             train_rmse: float, val_rmse_global: float,
+                             val_rmse_last: float, val_score_last: float, lr: float):
         import logging
         logger = logging.getLogger(__name__)
-        
-        # 格式化数值显示
+
         def format_metric(val):
             if np.isnan(val) or val == float('nan'):
                 return "N/A"
             return f"{val:.2f}"
-        
-        # 详细的日志格式
-        metrics_msg = (f"[Epoch {epoch:3d}/{total_epochs}] "
-                      f"train_rmse={format_metric(train_rmse)} | "
-                      f"val_rmse(global)={format_metric(val_rmse_global)} cycles | "
-                      f"val_rmse(last)={format_metric(val_rmse_last)} cycles | "
-                      f"val_score(last)={format_metric(val_score_last)} | "
-                      f"lr={lr:.2e}")
-        
-        # 同时输出到控制台和日志文件
-        print(metrics_msg)
-        logger.info(metrics_msg)
 
-    # 移除模型保存和加载功能
+        msg = (f"[Epoch {epoch:3d}/{total_epochs}] "
+               f"train_rmse={format_metric(train_rmse)} | "
+               f"val_rmse(global)={format_metric(val_rmse_global)} cycles | "
+               f"val_rmse(last)={format_metric(val_rmse_last)} cycles | "
+               f"val_score(last)={format_metric(val_score_last)} | "
+               f"lr={lr:.2e}")
+        print(msg)
+        logger.info(msg)
 
-    # --------- 评估相关工具函数 ---------
+    # --------- 评估工具 ---------
     @staticmethod
     def rmse_score(pred: torch.Tensor, target: torch.Tensor) -> float:
-        """计算 RMSE"""
         d = (pred - target).detach().cpu().numpy()
         return float(np.sqrt((d ** 2).mean()))
 
     @staticmethod
     def phm08_score(pred: torch.Tensor, target: torch.Tensor, clip_max: float = 125.0) -> float:
-        """PHM08竞赛风格的非对称评分函数"""
         pred = torch.clamp(pred, max=clip_max).detach().cpu().numpy()
         target = torch.clamp(target, max=clip_max).detach().cpu().numpy()
         d = pred - target
@@ -231,21 +241,23 @@ class BaseRULModel(ABC):
 
     @torch.no_grad()
     def evaluate_last_window(self, test_dataset, clip_max: float = 125.0) -> Tuple[float, float]:
-        """
-        每台测试发动机取最后一个窗口，返回 (RMSE, Score)
-        """
         self.model.eval()
         last_preds, last_targets = [], []
-
-        for uid in test_dataset.units:
-            unit_indices = [i for i, (u, _) in enumerate(test_dataset.sample_index) if u == uid]
-            if unit_indices:
-                x, y = test_dataset[unit_indices[-1]]
-                x = x.unsqueeze(0).to(self.device)   # (1,L,C)
-                pred = self.model(x)                 # (1,)
-                last_preds.append(float(pred.item()))
-                last_targets.append(float(y.item()))
-
+        use_amp = bool(getattr(self, "use_amp", True) and torch.cuda.is_available())
+        amp_dtype = (
+            torch.bfloat16
+            if hasattr(torch.cuda, "is_bf16_supported") and torch.cuda.is_bf16_supported()
+            else torch.float16
+        )
+        with torch.amp.autocast("cuda", enabled=use_amp, dtype=amp_dtype):
+            for uid in test_dataset.units:
+                unit_indices = [i for i, (u, _) in enumerate(test_dataset.sample_index) if u == uid]
+                if unit_indices:
+                    x, y = test_dataset[unit_indices[-1]]
+                    x = x.unsqueeze(0).to(self.device)   # (1,L,C)
+                    pred = self.model(x)                 # (1,)
+                    last_preds.append(float(pred.item()))
+                    last_targets.append(float(y.item()))
         if last_preds:
             pred_t = torch.tensor(last_preds)
             target_t = torch.tensor(last_targets)
@@ -258,11 +270,6 @@ class BaseRULModel(ABC):
     # --------- 常用损失函数（可选） ---------
     @staticmethod
     def weighted_mse_phm_like(pred, y, norm_scale=125.0, normalized=True):
-        """
-        对 MSE 按 PHM08 不对称代价加权：
-        err>0 (晚报):  weight = exp(err / (10/norm_scale))
-        err<=0 (早报): weight = exp(-err / (13/norm_scale))
-        """
         if normalized:
             pos_k, neg_k = 10.0 / norm_scale, 13.0 / norm_scale
         else:
