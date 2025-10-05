@@ -27,20 +27,115 @@ def main():
     """运行一系列实验"""
     
     experiments = [
-        {
-        "name": "🧩 | TSMixer-PTSA(k=2)+ConvDistill | H128 L6 T4x8 W12 TopK16 Lv2",
-        "cmd": ["python","train.py",
-            "--model","tsmixer_ptsa","--fault","FD004",
-            "--batch_size","512","--epochs","180",
-            "--learning_rate","0.00032","--weight_decay","0.00008",
-            "--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8",
-            "--hidden_channels","128","--dropout","0.04",
-            "--scheduler","cosine","--warmup_epochs","8","--early_stopping","32",
-            "--ptsa_every_k","2","--ptsa_heads","6","--ptsa_local_window","12","--ptsa_topk","16",
-            "--ptsa_levels","2","--ptsa_parent_neigh","1",
-            "--distill_type","conv","--distill_stride","2","--reduce_channels","1.0"
-        ]
-        }
+        # {
+        # "name": "FD002 | TSMixer-PTSA + CondGate | L6 C128 k=2 W12 TopK10 Lv1",
+        # "cmd": ["python","train.py",
+        #     "--model","tsmixer_ptsa_cond","--fault","FD002",
+        #     "--batch_size","640","--epochs","180",
+        #     "--learning_rate","0.00035","--weight_decay","0.00008",
+        #     "--scheduler","cosine","--warmup_epochs","8","--early_stopping","32",
+        #     "--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8",
+        #     "--hidden_channels","128","--dropout","0.04",
+        #     "--ptsa_every_k","2","--ptsa_heads","6","--ptsa_local_window","12","--ptsa_topk","10",
+        #     "--ptsa_levels","1","--ptsa_parent_neigh","1","--ptsa_dropout","0.0",
+        #     "--distill_type","conv","--distill_stride","2","--reduce_channels","0.95","--drop_path","0.05",
+        #     "--cond_dim","3","--eca_kernel","5","--time_kernel","11",
+        #     "--val_batch_mul","8"
+        # ]
+        # },
+
+        # {
+        # "name": "🎯 | PTSA(FD002) HiAcc | L6 C128 k=2 H6 W12 TopK12 Lv1 rC1.0",
+        # "cmd": ["python","train.py",
+        #     "--model","tsmixer_ptsa","--fault","FD002",
+        #     "--batch_size","640","--epochs","180",
+        #     "--learning_rate","0.00033","--weight_decay","0.00008",
+        #     "--scheduler","cosine","--warmup_epochs","8","--early_stopping","32",
+        #     "--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8",
+        #     "--hidden_channels","128","--dropout","0.04",
+        #     "--ptsa_every_k","2","--ptsa_heads","6",
+        #     "--ptsa_local_window","12","--ptsa_topk","12",
+        #     "--ptsa_levels","1","--ptsa_parent_neigh","1","--ptsa_dropout","0.0",
+        #     "--distill_type","conv","--distill_stride","2","--reduce_channels","1.0",
+        #     "--drop_path","0.05",
+        #     "--val_batch_mul","8"
+        # ]
+        # },
+        # {
+        # "name": "🔬 | PTSA(FD002) TopK Sweep | k=2 W12 Lv1 rC0.95",
+        # "cmd": ["bash","-lc",
+        #     "for K in 8 10 12; do python train.py --model tsmixer_ptsa --fault FD002 \
+        #     --batch_size 640 --epochs 180 --learning_rate 0.00035 --weight_decay 0.00008 \
+        #     --scheduler cosine --warmup_epochs 8 --early_stopping 32 \
+        #     --tsmixer_layers 6 --time_expansion 4 --feat_expansion 8 \
+        #     --hidden_channels 128 --dropout 0.04 \
+        #     --ptsa_every_k 2 --ptsa_heads 6 --ptsa_local_window 12 --ptsa_topk $K \
+        #     --ptsa_levels 1 --ptsa_parent_neigh 1 --ptsa_dropout 0.0 \
+        #     --distill_type conv --distill_stride 2 --reduce_channels 0.95 \
+        #     --drop_path 0.05 --val_batch_mul 8; done"
+        # ]
+        # }
+
+
+
+
+
+        # {
+        # "name": "🧩 | FD002-配方A（更稳稀疏）| H120 L6 T4x8 W12 TopK10 Lv1 rC0.95",
+        # "cmd": ["python","train.py",
+        # "--model","tsmixer_ptsa","--fault","FD002",
+        # "--batch_size","640","--epochs","180",
+        # "--learning_rate","0.00033","--weight_decay","0.00008",
+        # "--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8",
+        # "--hidden_channels","120","--dropout","0.04",
+        # "--scheduler","cosine","--warmup_epochs","8","--early_stopping","32",
+        # "--ptsa_every_k","2","--ptsa_heads","6","--ptsa_local_window","12","--ptsa_topk","10",
+        # "--ptsa_levels","1","--ptsa_parent_neigh","1",
+        # "--distill_type","conv","--distill_stride","2","--reduce_channels","0.95"
+        # ]
+        # },
+        # {
+        # "name": "🧩 | FD002-配方B（更宽视域+5头）| H120 L6 T4x8 W14 TopK12 Lv1 rC0.95",
+        # "cmd": ["python","train.py",
+        # "--model","tsmixer_ptsa","--fault","FD002",
+        # "--batch_size","640","--epochs","180",
+        # "--learning_rate","0.00032","--weight_decay","0.00008",
+        # "--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8",
+        # "--hidden_channels","120","--dropout","0.05",
+        # "--scheduler","cosine","--warmup_epochs","8","--early_stopping","32",
+        # "--ptsa_every_k","2","--ptsa_heads","5","--ptsa_local_window","14","--ptsa_topk","12",
+        # "--ptsa_levels","1","--ptsa_parent_neigh","1",
+        # "--distill_type","conv","--distill_stride","2","--reduce_channels","0.95"
+        # ]
+        # },
+        # {
+        # "name": "🧩 | FD002-对拍：无父邻域P | H120 L6 T4x8 W12 TopK10 Lv1 P0",
+        # "cmd": ["python","train.py",
+        # "--model","tsmixer_ptsa","--fault","FD002",
+        # "--batch_size","640","--epochs","180",
+        # "--learning_rate","0.00033","--weight_decay","0.00008",
+        # "--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8",
+        # "--hidden_channels","120","--dropout","0.04",
+        # "--scheduler","cosine","--warmup_epochs","8","--early_stopping","32",
+        # "--ptsa_every_k","2","--ptsa_heads","6","--ptsa_local_window","12","--ptsa_topk","10",
+        # "--ptsa_levels","1","--ptsa_parent_neigh","0",
+        # "--distill_type","conv","--distill_stride","2","--reduce_channels","0.95"
+        # ]
+        # },
+        # {
+        # "name": "🧩 | FD002-大有效批（accum=2）| H120 L6 T4x8 W12 TopK12 Lv1",
+        # "cmd": ["python","train.py",
+        # "--model","tsmixer_ptsa","--fault","FD002",
+        # "--batch_size","640","--epochs","180","--grad_accum","2",
+        # "--learning_rate","0.00030","--weight_decay","0.00008",
+        # "--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8",
+        # "--hidden_channels","120","--dropout","0.04",
+        # "--scheduler","cosine","--warmup_epochs","8","--early_stopping","32",
+        # "--ptsa_every_k","2","--ptsa_heads","6","--ptsa_local_window","12","--ptsa_topk","12",
+        # "--ptsa_levels","1","--ptsa_parent_neigh","1",
+        # "--distill_type","conv","--distill_stride","2","--reduce_channels","1.0"
+        # ]
+        # }
 
 
         # {
@@ -127,10 +222,10 @@ def main():
     #     "--early_stopping","32"
     #     ]
     # }
-        # {
-        # "name": "🔧A1 | FE×8 · TSL=6 · Dropout 0.04 · wd 8e-5 · dils 1,2 · mean",
-        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00008","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.04","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
-        # },
+        {
+        "name": "🔧A1 | FE×8 · TSL=6 · Dropout 0.04 · wd 8e-5 · dils 1,2 · mean",
+        "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00008","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.04","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        },
         # {
         # "name": "🔧A2 | FE×8 · TSL=6 · Dropout 0.03 · wd 8e-5 · dils 1,2 · mean",
         # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00008","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.03","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]

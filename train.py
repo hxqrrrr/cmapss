@@ -42,7 +42,7 @@ def parse_args():
         "--model", type=str, default="transformer",
         choices=[
             "tsmixer", "tsmixer_eca", "transformer", "bilstm", "rbmlstm",
-            "cnn_tsmixer", "cnn_tsmixer_gated", "tokenpool", "ptsmixer","tsmixer_ptsa"
+            "cnn_tsmixer", "cnn_tsmixer_gated", "tokenpool", "ptsmixer","tsmixer_ptsa","tsmixer_ptsa_cond" 
         ],
         help="选择模型架构"
     )
@@ -158,6 +158,14 @@ def parse_args():
     parser.add_argument("--drop_path", type=float, default=0.0, help="可选 Stochastic Depth 比例")
 
 
+    # 在 NEW: TSMixer+PTSA 特定参数 后面追加
+    parser.add_argument("--cond_dim", type=int, default=3)
+    parser.add_argument("--film_hidden", type=int, default=32)   #（保留给后续进阶版）
+    # parser.add_argument("--eca_kernel", type=int, default=5)
+    parser.add_argument("--time_kernel", type=int, default=11)
+    parser.add_argument("--use_post_gate", action="store_true", default=False)
+
+
 
 
     # 学习率调度器
@@ -172,6 +180,9 @@ def parse_args():
     parser.add_argument("--device", type=str, default="auto", help="计算设备")
     parser.add_argument("--log_dir", type=str, default="logs", help="日志保存目录")
     parser.add_argument("--no_log", action="store_true", help="不保存日志文件")
+    parser.add_argument("--val_batch_mul", type=float, default=2.0,
+                    help="验证集 batch 相对训练 batch 的放大倍数（提高验证吞吐）")
+   
 
     return parser.parse_args()
 
@@ -398,6 +409,24 @@ def create_model(args, input_size, seq_len):
             use_amp=True,
         )
 
+    elif args.model == "tsmixer_ptsa_cond":
+        from models.tsmixer_ptsa_cond_model import ModelTSMixerPTSACOND
+        model = ModelTSMixerPTSACOND(
+            input_size=input_size, seq_len=seq_len, out_channels=1,
+            channels=args.hidden_channels, depth=args.tsmixer_layers,
+            time_expansion=args.time_expansion, feat_expansion=args.feat_expansion,
+            dropout=args.dropout,
+            use_ptsa=True, ptsa_every_k=args.ptsa_every_k, ptsa_heads=args.ptsa_heads,
+            ptsa_local_window=args.ptsa_local_window, ptsa_topk=args.ptsa_topk,
+            ptsa_levels=args.ptsa_levels, ptsa_parent_neigh=args.ptsa_parent_neigh,
+            ptsa_dropout=args.ptsa_dropout,
+            distill_type=args.distill_type, distill_stride=args.distill_stride,
+            reduce_channels=args.reduce_channels, drop_path=args.drop_path,
+            cond_dim=args.cond_dim, eca_kernel=args.eca_kernel,  # ← 直接用现有 eca_kernel
+            time_kernel=args.time_kernel, use_post_gate=args.use_post_gate
+        )
+
+
 
     else:
         raise ValueError(f"未支持的模型类型: {args.model}")
@@ -455,6 +484,7 @@ def main():
     logger.info(f"早停耐心值: {args.early_stopping}")
     logger.info(f"warmup_epochs: {args.warmup_epochs}")
     logger.info(f"grad_accum: {args.grad_accum}")
+    logger.info(f"val_batch_mul: {args.val_batch_mul}")
 
     # 模型特定参数...
     if args.model == "rbmlstm":
@@ -574,6 +604,14 @@ def main():
                     f"attn_dropout={args.ptsa_dropout}")
         logger.info(f"Distill: type={args.distill_type}, stride={args.distill_stride}, "
                     f"reduce_channels={args.reduce_channels}, drop_path={args.drop_path}")
+        
+    elif args.model == "tsmixer_ptsa_cond":
+        logger.info("--- TSMixer + PTSA + 条件双门控（ECA×Time×FiLM） ---")
+        logger.info(f"Hidden Channels: {args.hidden_channels} | Layers: {args.tsmixer_layers}")
+        logger.info(f"PTSA: k={args.ptsa_every_k}, heads={args.ptsa_heads}, W={args.ptsa_local_window},"
+                    f" TopK={args.ptsa_topk}, Lv={args.ptsa_levels}, P={args.ptsa_parent_neigh}")
+        logger.info(f"CondGate: cond_dim={args.cond_dim}, ECAk={args.eca_kernel}, Timek={args.time_kernel}, post={args.use_post_gate}")
+
 
 
     logger.info("="*80)
@@ -596,21 +634,35 @@ def main():
             prefetch_factor=args.prefetch_factor,
             persistent_workers=args.persistent_workers
         )
+        val_bs = max(1, int(args.batch_size * args.val_batch_mul))
+        # val_loader = test_set.get_dataloader(
+        #     batch_size=max(1, args.batch_size * 2), shuffle=False,
+        #     num_workers=num_workers, pin_memory=True,
+        #     prefetch_factor=args.prefetch_factor,
+        #     persistent_workers=args.persistent_workers
+        # )
         val_loader = test_set.get_dataloader(
-            batch_size=max(1, args.batch_size * 2), shuffle=False,
+            batch_size=val_bs, shuffle=False,
             num_workers=num_workers, pin_memory=True,
             prefetch_factor=args.prefetch_factor,
             persistent_workers=args.persistent_workers
         )
     except TypeError:
+        
         train_loader = train_set.get_dataloader(
             batch_size=args.batch_size, shuffle=True,
             num_workers=num_workers, pin_memory=True
         )
+        val_bs = max(1, int(args.batch_size * args.val_batch_mul))
+        # val_loader = test_set.get_dataloader(
+        #     batch_size=max(1, args.batch_size * 2), shuffle=False,
+        #     num_workers=num_workers, pin_memory=True
+        # )
         val_loader = test_set.get_dataloader(
-            batch_size=max(1, args.batch_size * 2), shuffle=False,
+            batch_size=val_bs, shuffle=False,
             num_workers=num_workers, pin_memory=True
         )
+
 
     # ================== 模型 ==================
     model = create_model(args, train_set.n_features, train_set.window_size)
