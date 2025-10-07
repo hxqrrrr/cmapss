@@ -27,10 +27,991 @@ def main():
     """运行一系列实验"""
     
     experiments = [
+        # {
+        # "name": "FD002 | TSMixer-PTSA + CondGate | L6 C128 k=2 W12 TopK10 Lv1",
+        # "cmd": ["python","train.py",
+        #     "--model","tsmixer_ptsa_cond","--fault","FD002",
+        #     "--batch_size","640","--epochs","180",
+        #     "--learning_rate","0.00035","--weight_decay","0.00008",
+        #     "--scheduler","cosine","--warmup_epochs","8","--early_stopping","32",
+        #     "--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8",
+        #     "--hidden_channels","128","--dropout","0.04",
+        #     "--ptsa_every_k","2","--ptsa_heads","6","--ptsa_local_window","12","--ptsa_topk","10",
+        #     "--ptsa_levels","1","--ptsa_parent_neigh","1","--ptsa_dropout","0.0",
+        #     "--distill_type","conv","--distill_stride","2","--reduce_channels","0.95","--drop_path","0.05",
+        #     "--cond_dim","3","--eca_kernel","5","--time_kernel","11",
+        #     "--val_batch_mul","8"
+        # ]
+        # },
+
+        # {
+        # "name": "🎯 | PTSA(FD002) HiAcc | L6 C128 k=2 H6 W12 TopK12 Lv1 rC1.0",
+        # "cmd": ["python","train.py",
+        #     "--model","tsmixer_ptsa","--fault","FD002",
+        #     "--batch_size","640","--epochs","180",
+        #     "--learning_rate","0.00033","--weight_decay","0.00008",
+        #     "--scheduler","cosine","--warmup_epochs","8","--early_stopping","32",
+        #     "--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8",
+        #     "--hidden_channels","128","--dropout","0.04",
+        #     "--ptsa_every_k","2","--ptsa_heads","6",
+        #     "--ptsa_local_window","12","--ptsa_topk","12",
+        #     "--ptsa_levels","1","--ptsa_parent_neigh","1","--ptsa_dropout","0.0",
+        #     "--distill_type","conv","--distill_stride","2","--reduce_channels","1.0",
+        #     "--drop_path","0.05",
+        #     "--val_batch_mul","8"
+        # ]
+        # },
+        # {
+        # "name": "🔬 | PTSA(FD002) TopK Sweep | k=2 W12 Lv1 rC0.95",
+        # "cmd": ["bash","-lc",
+        #     "for K in 8 10 12; do python train.py --model tsmixer_ptsa --fault FD002 \
+        #     --batch_size 640 --epochs 180 --learning_rate 0.00035 --weight_decay 0.00008 \
+        #     --scheduler cosine --warmup_epochs 8 --early_stopping 32 \
+        #     --tsmixer_layers 6 --time_expansion 4 --feat_expansion 8 \
+        #     --hidden_channels 128 --dropout 0.04 \
+        #     --ptsa_every_k 2 --ptsa_heads 6 --ptsa_local_window 12 --ptsa_topk $K \
+        #     --ptsa_levels 1 --ptsa_parent_neigh 1 --ptsa_dropout 0.0 \
+        #     --distill_type conv --distill_stride 2 --reduce_channels 0.95 \
+        #     --drop_path 0.05 --val_batch_mul 8; done"
+        # ]
+        # }
+
+
+
+
+
+        # {
+        # "name": "🧩 | FD002-配方A（更稳稀疏）| H120 L6 T4x8 W12 TopK10 Lv1 rC0.95",
+        # "cmd": ["python","train.py",
+        # "--model","tsmixer_ptsa","--fault","FD002",
+        # "--batch_size","640","--epochs","180",
+        # "--learning_rate","0.00033","--weight_decay","0.00008",
+        # "--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8",
+        # "--hidden_channels","120","--dropout","0.04",
+        # "--scheduler","cosine","--warmup_epochs","8","--early_stopping","32",
+        # "--ptsa_every_k","2","--ptsa_heads","6","--ptsa_local_window","12","--ptsa_topk","10",
+        # "--ptsa_levels","1","--ptsa_parent_neigh","1",
+        # "--distill_type","conv","--distill_stride","2","--reduce_channels","0.95"
+        # ]
+        # },
+        # {
+        # "name": "🧩 | FD002-配方B（更宽视域+5头）| H120 L6 T4x8 W14 TopK12 Lv1 rC0.95",
+        # "cmd": ["python","train.py",
+        # "--model","tsmixer_ptsa","--fault","FD002",
+        # "--batch_size","640","--epochs","180",
+        # "--learning_rate","0.00032","--weight_decay","0.00008",
+        # "--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8",
+        # "--hidden_channels","120","--dropout","0.05",
+        # "--scheduler","cosine","--warmup_epochs","8","--early_stopping","32",
+        # "--ptsa_every_k","2","--ptsa_heads","5","--ptsa_local_window","14","--ptsa_topk","12",
+        # "--ptsa_levels","1","--ptsa_parent_neigh","1",
+        # "--distill_type","conv","--distill_stride","2","--reduce_channels","0.95"
+        # ]
+        # },
+        # {
+        # "name": "🧩 | FD002-对拍：无父邻域P | H120 L6 T4x8 W12 TopK10 Lv1 P0",
+        # "cmd": ["python","train.py",
+        # "--model","tsmixer_ptsa","--fault","FD002",
+        # "--batch_size","640","--epochs","180",
+        # "--learning_rate","0.00033","--weight_decay","0.00008",
+        # "--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8",
+        # "--hidden_channels","120","--dropout","0.04",
+        # "--scheduler","cosine","--warmup_epochs","8","--early_stopping","32",
+        # "--ptsa_every_k","2","--ptsa_heads","6","--ptsa_local_window","12","--ptsa_topk","10",
+        # "--ptsa_levels","1","--ptsa_parent_neigh","0",
+        # "--distill_type","conv","--distill_stride","2","--reduce_channels","0.95"
+        # ]
+        # },
+        # {
+        # "name": "🧩 | FD002-大有效批（accum=2）| H120 L6 T4x8 W12 TopK12 Lv1",
+        # "cmd": ["python","train.py",
+        # "--model","tsmixer_ptsa","--fault","FD002",
+        # "--batch_size","640","--epochs","180","--grad_accum","2",
+        # "--learning_rate","0.00030","--weight_decay","0.00008",
+        # "--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8",
+        # "--hidden_channels","120","--dropout","0.04",
+        # "--scheduler","cosine","--warmup_epochs","8","--early_stopping","32",
+        # "--ptsa_every_k","2","--ptsa_heads","6","--ptsa_local_window","12","--ptsa_topk","12",
+        # "--ptsa_levels","1","--ptsa_parent_neigh","1",
+        # "--distill_type","conv","--distill_stride","2","--reduce_channels","1.0"
+        # ]
+        # }
+
+
+        # {
+        # "name": "🏆 | Baseline†Best · Dropout 0.04",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00008","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.04","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "⏱ | Longer Warmup · LR微调(-) · Dropout 0.04",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00030","--weight_decay","0.00008","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.04","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","10","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🧱 | Dilations 1,2,4 · 感受野增强",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2,4","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00008","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.04","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # }
+
+
+
+
+
+
+    #         {
+    #     "name": "🧩 | FE×8 · TSL=6 · 保守强化：dils=1,2 · wd=1e-4 · warmup=10",
+    #     "cmd": ["python","train.py",
+    #     "--model","tsmixer_eca",
+    #     "--fault","FD002",
+    #     "--use_eca","--eca_kernel","5",
+    #     "--use_bitcn","--tcn_kernel","3",
+    #     "--tcn_dilations","1,2","--tcn_fuse","mean",
+    #     "--batch_size","576",
+    #     "--epochs","180",
+    #     "--learning_rate","0.00031",
+    #     "--weight_decay","0.00010",
+    #     "--tsmixer_layers","6",
+    #     "--time_expansion","4",
+    #     "--feat_expansion","8",
+    #     "--dropout","0.05",
+    #     "--tcn_dropout","0.10",
+    #     "--scheduler","cosine",
+    #     "--warmup_epochs","10",
+    #     "--early_stopping","32"
+    #     ]
+    # },
+    # {
+    #     "name": "🛰️ | FE×8 · TSL=6 · 轻扩感受野：dils=1,2,3 · lr=3.3e-4",
+    #     "cmd": ["python","train.py",
+    #     "--model","tsmixer_eca",
+    #     "--fault","FD002",
+    #     "--use_eca","--eca_kernel","5",
+    #     "--use_bitcn","--tcn_kernel","3",
+    #     "--tcn_dilations","1,2,3","--tcn_fuse","mean",
+    #     "--batch_size","576",
+    #     "--epochs","180",
+    #     "--learning_rate","0.00033",
+    #     "--weight_decay","0.00012",
+    #     "--tsmixer_layers","6",
+    #     "--time_expansion","4",
+    #     "--feat_expansion","8",
+    #     "--dropout","0.05",
+    #     "--tcn_dropout","0.10",
+    #     "--scheduler","cosine",
+    #     "--warmup_epochs","8",
+    #     "--early_stopping","32"
+    #     ]
+    # },
+    # {
+    #     "name": "🔧 | FE×8 · TSL=6 · 前段加密：dils=1,2,2 · warmup=12 · lr=3.0e-4",
+    #     "cmd": ["python","train.py",
+    #     "--model","tsmixer_eca",
+    #     "--fault","FD002",
+    #     "--use_eca","--eca_kernel","5",
+    #     "--use_bitcn","--tcn_kernel","3",
+    #     "--tcn_dilations","1,2,2","--tcn_fuse","mean",
+    #     "--batch_size","576",
+    #     "--epochs","180",
+    #     "--learning_rate","0.00030",
+    #     "--weight_decay","0.00012",
+    #     "--tsmixer_layers","6",
+    #     "--time_expansion","4",
+    #     "--feat_expansion","8",
+    #     "--dropout","0.04",
+    #     "--tcn_dropout","0.10",
+    #     "--scheduler","cosine",
+    #     "--warmup_epochs","12",
+    #     "--early_stopping","32"
+    #     ]
+    # }
+        {
+        "name": "🔧A1 | FE×8 · TSL=6 · Dropout 0.04 · wd 8e-5 · dils 1,2 · mean",
+        "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00008","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.04","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        },
+        # {
+        # "name": "🔧A2 | FE×8 · TSL=6 · Dropout 0.03 · wd 8e-5 · dils 1,2 · mean",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00008","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.03","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🔧B1 | FE×8 · TSL=6 · Dropout 0.04 · wd 6e-5 · dils 1,2 · mean",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00006","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.04","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🔧B2 | FE×8 · TSL=6 · Dropout 0.04 · wd 1e-4 · dils 1,2 · mean",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00010","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.04","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🔧C1 | FE×8 · TSL=6 · Dropout 0.04 · lr 3.2e-4 · wd 8e-5 · dils 1,2 · mean",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00008","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.04","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🔧C2 | FE×8 · TSL=6 · Dropout 0.04 · lr 3.8e-4 · wd 8e-5 · dils 1,2 · mean",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00038","--weight_decay","0.00008","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.04","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🔧D1 | FE×8 · TSL=6 · Dropout 0.04 · wd 8e-5 · dils 1,3 · mean",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,3","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00008","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.04","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🔧E1 | FE×8 · TSL=6 · Dropout 0.04 · wd 8e-5 · dils 1,2 · fuse=concat",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","concat","--batch_size","576","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00008","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.04","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # }
+        # {
+        # "name": "🔧 A1 | FE×8 · TSL=6 · Dropout 0.04",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00033","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.04","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🔧 A2 | FE×8 · TSL=6 · Dropout 0.06",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00033","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.06","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "⚙️ A3 | FE×8 · TSL=6 · LR 3e-4",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00030","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "⚙️ A4 | FE×8 · TSL=6 · LR 3.8e-4",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00038","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "📦 A5 | Batch 768 · FE×8 · TSL=6",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","768","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "📦 A6 | Batch 768 · FE×8 · LR 3.2e-4",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","768","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🔎 A7 | ECA k=3 探索 · 其余同最优邻域",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","3","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🧱 A8 | FE×10 · 更宽特征混合",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","10","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+
+        # {
+        # "name": "🌀 B1 | TCN dilations {1,3}",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,3","--tcn_fuse","mean","--batch_size","640","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🌀 B2 | TCN dilations {1,2,3}",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2,3","--tcn_fuse","mean","--batch_size","640","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🧩 B3 | TCN kernel=5 · dil {1,2}",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","5","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","640","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🧩 B4 | TCN kernel=5 · LR 3.2e-4",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","5","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","640","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🧪 B5 | TCN dilations {1,2,4} · LR 3.2e-4",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2,4","--tcn_fuse","mean","--batch_size","640","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🧪 B6 | 更小 WD=1.2e-4→8e-5 · 保 {1,2}",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","640","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00008","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+
+        # {
+        # "name": "🏗️ C1 | 层数↑ 8 · Dropout 0.04 · LR 3.2e-4",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","640","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00012","--tsmixer_layers","8","--time_expansion","4","--feat_expansion","8","--dropout","0.04","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🏗️ C2 | 层数↓ 4 · 轻量快速对照",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","640","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","4","--time_expansion","4","--feat_expansion","8","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🫧 C3 | 更小 Dropout 0.03",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","640","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.03","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🫧 C4 | 更大 Dropout 0.07 · WD 1.4e-4 · LR 3.3e-4",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","640","--epochs","180","--learning_rate","0.00033","--weight_decay","0.00014","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.07","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+
+        # {
+        # "name": "🧪 D1 | Ablation 去 ECA（仅 BiTCN+TSMixer）",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","640","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🧪 D2 | Ablation 去 BiTCN（仅 ECA+TSMixer）",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--tcn_fuse","mean","--batch_size","640","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # }   
+        # {
+        # "name": "🏆 A1 | FE×8 + TSL=6（基线最优线）",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.10","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🥇 A2 | FE×8 + TSL=6 + 低MixerDropout(0.05)",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "💪 A3 | FE×8 + TSL=6（加大batch=704）",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","704","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.10","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🪄 A4 | FE×8 + TSL=6 + ECA=7（细粒度通道注意）",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","7","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","640","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "⚡ B1 | 简洁线：TSL=4, FE×4, do=0.05, bs=768（强优化范式）",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","768","--epochs","160","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","4","--time_expansion","4","--feat_expansion","4","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "⚖️ B2 | 上条的wd扫描：wd=1e-4（常见最稳点之一）",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","768","--epochs","160","--learning_rate","0.00035","--weight_decay","0.0001","--tsmixer_layers","4","--time_expansion","4","--feat_expansion","4","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🧪 B3 | 上条的wd扫描：wd=1.5e-4（轻微加正则）",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","768","--epochs","160","--learning_rate","0.00035","--weight_decay","0.00015","--tsmixer_layers","4","--time_expansion","4","--feat_expansion","4","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🆙 B4 | 在B1上仅改TSL=6（看结构+优化能否叠加）",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","768","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","4","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🧭 C1 | 控制实验：FE×8 + do=0.05，但 dils=1,2,4",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2,4","--tcn_fuse","mean","--batch_size","640","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.05","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+
+        # {
+        # "name": "🥇 ECATSM-FD002-LongRun++: L4 TE4 FE4 dils=1,2 mean (200e)",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","768","--epochs","200","--learning_rate","0.0004","--weight_decay","0.0001","--tsmixer_layers","4","--time_expansion","4","--feat_expansion","4","--dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","36"]
+        # },
+        # {
+        # "name": "🥈 ECATSM-FD002-DilWide-124: L4 TE4 FE4 dils=1,2,4 mean",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2,4","--tcn_fuse","mean","--batch_size","704","--epochs","180","--learning_rate","0.0004","--weight_decay","0.0001","--tsmixer_layers","4","--time_expansion","4","--feat_expansion","4","--dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🥉 ECATSM-FD002-DilWide-1248: 更大感受野",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2,4,8","--tcn_fuse","mean","--batch_size","640","--epochs","180","--learning_rate","0.00035","--weight_decay","0.0001","--tsmixer_layers","4","--time_expansion","4","--feat_expansion","4","--dropout","0.10","--scheduler","cosine","--warmup_epochs","10","--early_stopping","30"]
+        # },
+        # {
+        # "name": "🏃 ECATSM-FD002-DeepMixer-L6: L6 TE4 FE4 dils=1,2 mean",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","640","--epochs","180","--learning_rate","0.00035","--weight_decay","0.0001","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","4","--dropout","0.10","--scheduler","cosine","--warmup_epochs","10","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🧠 ECATSM-FD002-DeepWide-L6FE8: L6 TE4 FE8 dils=1,2 mean",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","160","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.10","--scheduler","cosine","--warmup_epochs","10","--early_stopping","28"]
+        # },
+        # {
+        # "name": "🌊 ECATSM-FD002-LowDrop: dropout=0.05（更少正则）",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","768","--epochs","180","--learning_rate","0.00035","--weight_decay","0.0001","--tsmixer_layers","4","--time_expansion","4","--feat_expansion","4","--dropout","0.05","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🧊 ECATSM-FD002-HighWD: wd=3e-4（略增权重衰减）",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","768","--epochs","160","--learning_rate","0.00035","--weight_decay","0.0003","--tsmixer_layers","4","--time_expansion","4","--feat_expansion","4","--dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","28"]
+        # },
+        # {
+        # "name": "📡 ECATSM-FD002-ECABigger: eca_kernel=7（更平滑通道注意）",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","7","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","768","--epochs","160","--learning_rate","0.0004","--weight_decay","0.0001","--tsmixer_layers","4","--time_expansion","4","--feat_expansion","4","--dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","28"]
+        # },
+        # {
+        # "name": "➕ ECATSM-FD002-FuseSum: BiTCN 融合=sum",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2,4","--tcn_fuse","sum","--batch_size","704","--epochs","180","--learning_rate","0.00035","--weight_decay","0.0001","--tsmixer_layers","4","--time_expansion","4","--feat_expansion","4","--dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🧩 ECATSM-FD002-TCNk5: TCN kernel=5（更宽卷积核）",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","5","--tcn_dilations","1,2,4","--tcn_fuse","mean","--batch_size","640","--epochs","160","--learning_rate","0.00035","--weight_decay","0.0001","--tsmixer_layers","4","--time_expansion","4","--feat_expansion","4","--dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","28"]
+        # },
+        # {
+        # "name": "🪶 ECATSM-FD002-TCNdrop06: tcn_dropout=0.06（轻度正则）",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2,4","--tcn_fuse","mean","--batch_size","704","--epochs","180","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","4","--time_expansion","4","--feat_expansion","4","--dropout","0.10","--tcn_dropout","0.06","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
+        # {
+        # "name": "🧱 ECATSM-FD002-TE6: 时间混合更强（TE=6）",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2,4","--tcn_fuse","mean","--batch_size","704","--epochs","160","--learning_rate","0.00035","--weight_decay","0.0001","--tsmixer_layers","4","--time_expansion","6","--feat_expansion","4","--dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","28"]
+        # },
+        # {
+        # "name": "🗂 ECATSM-FD002-FE8: 特征混合更强（FE=8）",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2,4","--tcn_fuse","mean","--batch_size","640","--epochs","160","--learning_rate","0.00035","--weight_decay","0.00012","--tsmixer_layers","4","--time_expansion","4","--feat_expansion","8","--dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","28"]
+        # },
+        # {
+        # "name": "⚙️ ECATSM-FD002-GradAccum2: 显存友好长跑",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2,4","--tcn_fuse","mean","--batch_size","384","--grad_accum","2","--epochs","200","--learning_rate","0.00035","--weight_decay","0.0001","--tsmixer_layers","4","--time_expansion","4","--feat_expansion","4","--dropout","0.10","--scheduler","cosine","--warmup_epochs","10","--early_stopping","36"]
+        # }
+
+
+
+
+
+
+
+
+        # {
+        #     "name": "💎 pTSM-FD002-Micro-A1: dp=0.25 br=0.10 wd=3e-4 lr=5e-4",
+        #     "cmd": ["python", "train.py",
+        #     "--model", "ptsmixer", "--fault", "FD002",
+        #     "--batch_size", "192", "--epochs", "80",
+        #     "--learning_rate", "0.0005", "--weight_decay", "0.0003",
+        #     "--pt_depth", "8", "--pt_ch_expand", "4",
+        #     "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+        #     "--pt_t_ffn_expand", "1",
+        #     "--pt_droppath", "0.25", "--pt_branch_dropout", "0.10",
+        #     "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+        #     "--scheduler", "cosine", "--early_stopping", "18"
+        #     ]
+        # },
+        # {
+        #     "name": "💎 pTSM-FD002-Micro-A2: dp=0.25 br=0.10 wd=5e-4 lr=5e-4",
+        #     "cmd": ["python", "train.py",
+        #     "--model", "ptsmixer", "--fault", "FD002",
+        #     "--batch_size", "192", "--epochs", "80",
+        #     "--learning_rate", "0.0005", "--weight_decay", "0.0005",
+        #     "--pt_depth", "8", "--pt_ch_expand", "4",
+        #     "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+        #     "--pt_t_ffn_expand", "1",
+        #     "--pt_droppath", "0.25", "--pt_branch_dropout", "0.10",
+        #     "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+        #     "--scheduler", "cosine", "--early_stopping", "18"
+        #     ]
+        # },
+        # {
+        #     "name": "💎 pTSM-FD002-Micro-A3: dp=0.25 br=0.10 wd=3e-4 lr=6e-4",
+        #     "cmd": ["python", "train.py",
+        #     "--model", "ptsmixer", "--fault", "FD002",
+        #     "--batch_size", "192", "--epochs", "80",
+        #     "--learning_rate", "0.0006", "--weight_decay", "0.0003",
+        #     "--pt_depth", "8", "--pt_ch_expand", "4",
+        #     "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+        #     "--pt_t_ffn_expand", "1",
+        #     "--pt_droppath", "0.25", "--pt_branch_dropout", "0.10",
+        #     "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+        #     "--scheduler", "cosine", "--early_stopping", "18"
+        #     ]
+        # },
+        # {
+        #     "name": "💎 pTSM-FD002-Micro-A4: dp=0.25 br=0.10 wd=5e-4 lr=6e-4",
+        #     "cmd": ["python", "train.py",
+        #     "--model", "ptsmixer", "--fault", "FD002",
+        #     "--batch_size", "192", "--epochs", "80",
+        #     "--learning_rate", "0.0006", "--weight_decay", "0.0005",
+        #     "--pt_depth", "8", "--pt_ch_expand", "4",
+        #     "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+        #     "--pt_t_ffn_expand", "1",
+        #     "--pt_droppath", "0.25", "--pt_branch_dropout", "0.10",
+        #     "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+        #     "--scheduler", "cosine", "--early_stopping", "18"
+        #     ]
+        # },
+        # {
+        #     "name": "💎 pTSM-FD002-Micro-A5: dp=0.25 br=0.10 wd=3e-4 lr=7e-4",
+        #     "cmd": ["python", "train.py",
+        #     "--model", "ptsmixer", "--fault", "FD002",
+        #     "--batch_size", "192", "--epochs", "80",
+        #     "--learning_rate", "0.0007", "--weight_decay", "0.0003",
+        #     "--pt_depth", "8", "--pt_ch_expand", "4",
+        #     "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+        #     "--pt_t_ffn_expand", "1",
+        #     "--pt_droppath", "0.25", "--pt_branch_dropout", "0.10",
+        #     "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+        #     "--scheduler", "cosine", "--early_stopping", "18"
+        #     ]
+        # },
+        # {
+        #     "name": "💎 pTSM-FD002-Micro-A6: dp=0.24 br=0.10 wd=5e-4 lr=7e-4",
+        #     "cmd": ["python", "train.py",
+        #     "--model", "ptsmixer", "--fault", "FD002",
+        #     "--batch_size", "192", "--epochs", "80",
+        #     "--learning_rate", "0.0007", "--weight_decay", "0.0005",
+        #     "--pt_depth", "8", "--pt_ch_expand", "4",
+        #     "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+        #     "--pt_t_ffn_expand", "1",
+        #     "--pt_droppath", "0.24", "--pt_branch_dropout", "0.10",
+        #     "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+        #     "--scheduler", "cosine", "--early_stopping", "18"
+        #     ]
+        # },
+        # {
+        #     "name": "💎 pTSM-FD002-Micro-B1: dp=0.28 br=0.12 wd=2e-4 lr=6e-4",
+        #     "cmd": ["python", "train.py",
+        #     "--model", "ptsmixer", "--fault", "FD002",
+        #     "--batch_size", "192", "--epochs", "80",
+        #     "--learning_rate", "0.0006", "--weight_decay", "0.0002",
+        #     "--pt_depth", "8", "--pt_ch_expand", "4",
+        #     "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+        #     "--pt_t_ffn_expand", "1",
+        #     "--pt_droppath", "0.28", "--pt_branch_dropout", "0.12",
+        #     "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+        #     "--scheduler", "cosine", "--early_stopping", "18"
+        #     ]
+        # },
+        # {
+        #     "name": "💎 pTSM-FD002-Micro-B2: dp=0.30 br=0.12 wd=1e-4 lr=6e-4",
+        #     "cmd": ["python", "train.py",
+        #     "--model", "ptsmixer", "--fault", "FD002",
+        #     "--batch_size", "192", "--epochs", "80",
+        #     "--learning_rate", "0.0006", "--weight_decay", "0.0001",
+        #     "--pt_depth", "8", "--pt_ch_expand", "4",
+        #     "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+        #     "--pt_t_ffn_expand", "1",
+        #     "--pt_droppath", "0.30", "--pt_branch_dropout", "0.12",
+        #     "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+        #     "--scheduler", "cosine", "--early_stopping", "18"
+        #     ]
+        # },
+        # {
+        #     "name": "💎 pTSM-FD002-Micro-B3: dp=0.30 br=0.12 wd=2e-4 lr=5e-4",
+        #     "cmd": ["python", "train.py",
+        #     "--model", "ptsmixer", "--fault", "FD002",
+        #     "--batch_size", "192", "--epochs", "80",
+        #     "--learning_rate", "0.0005", "--weight_decay", "0.0002",
+        #     "--pt_depth", "8", "--pt_ch_expand", "4",
+        #     "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+        #     "--pt_t_ffn_expand", "1",
+        #     "--pt_droppath", "0.30", "--pt_branch_dropout", "0.12",
+        #     "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+        #     "--scheduler", "cosine", "--early_stopping", "18"
+        #     ]
+        # },
+        # {
+        #     "name": "💎 pTSM-FD002-Micro-B4: dp=0.30 br=0.12 wd=2e-4 lr=7e-4",
+        #     "cmd": ["python", "train.py",
+        #     "--model", "ptsmixer", "--fault", "FD002",
+        #     "--batch_size", "192", "--epochs", "80",
+        #     "--learning_rate", "0.0007", "--weight_decay", "0.0002",
+        #     "--pt_depth", "8", "--pt_ch_expand", "4",
+        #     "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+        #     "--pt_t_ffn_expand", "1",
+        #     "--pt_droppath", "0.30", "--pt_branch_dropout", "0.12",
+        #     "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+        #     "--scheduler", "cosine", "--early_stopping", "18"
+        #     ]
+        # },
+        # {
+        #     "name": "💎 pTSM-FD002-Micro-B5: dp=0.32 br=0.12 wd=2e-4 lr=6e-4",
+        #     "cmd": ["python", "train.py",
+        #     "--model", "ptsmixer", "--fault", "FD002",
+        #     "--batch_size", "192", "--epochs", "80",
+        #     "--learning_rate", "0.0006", "--weight_decay", "0.0002",
+        #     "--pt_depth", "8", "--pt_ch_expand", "4",
+        #     "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+        #     "--pt_t_ffn_expand", "1",
+        #     "--pt_droppath", "0.32", "--pt_branch_dropout", "0.12",
+        #     "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+        #     "--scheduler", "cosine", "--early_stopping", "18"
+        #     ]
+        # },
+        # {
+        #     "name": "💎 pTSM-FD002-Micro-B6: dp=0.28 br=0.10 wd=2e-4 lr=6e-4",
+        #     "cmd": ["python", "train.py",
+        #     "--model", "ptsmixer", "--fault", "FD002",
+        #     "--batch_size", "192", "--epochs", "80",
+        #     "--learning_rate", "0.0006", "--weight_decay", "0.0002",
+        #     "--pt_depth", "8", "--pt_ch_expand", "4",
+        #     "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+        #     "--pt_t_ffn_expand", "1",
+        #     "--pt_droppath", "0.28", "--pt_branch_dropout", "0.10",
+        #     "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+        #     "--scheduler", "cosine", "--early_stopping", "18"
+        #     ]
+        # },
+        
+
+    # {
+    # "name": "💎 pTSM-FD002-Narrow-1: best+wd↑",
+    # "cmd": ["python", "train.py",
+    #     "--model", "ptsmixer", "--fault", "FD002",
+    #     "--batch_size", "192", "--epochs", "80",
+    #     "--learning_rate", "0.0006", "--weight_decay", "0.0006",
+    #     "--pt_depth", "8", "--pt_ch_expand", "4",
+    #     "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+    #     "--pt_t_ffn_expand", "1",
+    #     "--pt_droppath", "0.25", "--pt_branch_dropout", "0.12",
+    #     "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+    #     "--scheduler", "cosine", "--early_stopping", "15"
+    # ]
+    # },
+    # {
+    #     "name": "💎 pTSM-FD002-Narrow-2: dp↑0.28",
+    #     "cmd": ["python", "train.py",
+    #         "--model", "ptsmixer", "--fault", "FD002",
+    #         "--batch_size", "192", "--epochs", "80",
+    #         "--learning_rate", "0.0006", "--weight_decay", "0.0005",
+    #         "--pt_depth", "8", "--pt_ch_expand", "4",
+    #         "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+    #         "--pt_t_ffn_expand", "1",
+    #         "--pt_droppath", "0.28", "--pt_branch_dropout", "0.12",
+    #         "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+    #         "--scheduler", "cosine", "--early_stopping", "15"
+    #     ]
+    # },
+    # {
+    #     "name": "💎 pTSM-FD002-Narrow-3: lr↑7e-4",
+    #     "cmd": ["python", "train.py",
+    #         "--model", "ptsmixer", "--fault", "FD002",
+    #         "--batch_size", "192", "--epochs", "80",
+    #         "--learning_rate", "0.0007", "--weight_decay", "0.0005",
+    #         "--pt_depth", "8", "--pt_ch_expand", "4",
+    #         "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+    #         "--pt_t_ffn_expand", "1",
+    #         "--pt_droppath", "0.25", "--pt_branch_dropout", "0.10",
+    #         "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+    #         "--scheduler", "cosine", "--early_stopping", "15"
+    #     ]
+    # },
+    # {
+    #     "name": "💎 pTSM-FD002-Narrow-4: ker=11 对照",
+    #     "cmd": ["python", "train.py",
+    #         "--model", "ptsmixer", "--fault", "FD002",
+    #         "--batch_size", "192", "--epochs", "80",
+    #         "--learning_rate", "0.0006", "--weight_decay", "0.0005",
+    #         "--pt_depth", "8", "--pt_ch_expand", "4",
+    #         "--pt_t_kernel", "11", "--pt_t_dilation", "2",
+    #         "--pt_t_ffn_expand", "1",
+    #         "--pt_droppath", "0.25", "--pt_branch_dropout", "0.12",
+    #         "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+    #         "--scheduler", "cosine", "--early_stopping", "15"
+    #     ]
+    # },
+    # {
+    #     "name": "💎 pTSM-FD002-Narrow-5: wd=2e-4 + dp=0.30",
+    #     "cmd": ["python", "train.py",
+    #         "--model", "ptsmixer", "--fault", "FD002",
+    #         "--batch_size", "192", "--epochs", "80",
+    #         "--learning_rate", "0.0006", "--weight_decay", "0.0002",
+    #         "--pt_depth", "8", "--pt_ch_expand", "4",
+    #         "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+    #         "--pt_t_ffn_expand", "1",
+    #         "--pt_droppath", "0.30", "--pt_branch_dropout", "0.12",
+    #         "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+    #         "--scheduler", "cosine", "--early_stopping", "18"
+    #     ]
+    # },
+    # {
+    #     "name": "💎 pTSM-FD002-Narrow-6: depth=7 稳健性",
+    #     "cmd": ["python", "train.py",
+    #         "--model", "ptsmixer", "--fault", "FD002",
+    #         "--batch_size", "192", "--epochs", "80",
+    #         "--learning_rate", "0.0006", "--weight_decay", "0.0005",
+    #         "--pt_depth", "7", "--pt_ch_expand", "4",
+    #         "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+    #         "--pt_t_ffn_expand", "1",
+    #         "--pt_droppath", "0.24", "--pt_branch_dropout", "0.12",
+    #         "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+    #         "--scheduler", "cosine", "--early_stopping", "15"
+    #     ]
+    # },
+    # {
+    #     "name": "💎 pTSM-FD002-Narrow-7: branch-drop=0.15",
+    #     "cmd": ["python", "train.py",
+    #         "--model", "ptsmixer", "--fault", "FD002",
+    #         "--batch_size", "192", "--epochs", "80",
+    #         "--learning_rate", "0.0006", "--weight_decay", "0.0005",
+    #         "--pt_depth", "8", "--pt_ch_expand", "4",
+    #         "--pt_t_kernel", "9", "--pt_t_dilation", "2",
+    #         "--pt_t_ffn_expand", "1",
+    #         "--pt_droppath", "0.26", "--pt_branch_dropout", "0.15",
+    #         "--pt_pooling", "avg", "--pt_input_dropout", "0.00",
+    #         "--scheduler", "cosine", "--early_stopping", "15"
+    #     ]
+    # }
+    #          # 1) 基线（你当前最优 15.48）
+    # {
+    #     "name": "pTSM-FD002-BASE-avg_dp0.20",
+    #     "cmd": ["python", "train.py",
+    #             "--model", "ptsmixer",
+    #             "--fault", "FD002",
+    #             "--batch_size", "192",
+    #             "--epochs", "60",
+    #             "--learning_rate", "8e-4",
+    #             "--weight_decay", "2e-4",
+    #             "--pt_depth", "6",
+    #             "--pt_ch_expand", "4",
+    #             "--pt_t_kernel", "11",
+    #             "--pt_t_dilation", "2",
+    #             "--pt_t_ffn_expand", "1",
+    #             "--pt_droppath", "0.20",
+    #             "--pt_branch_dropout", "0.10",
+    #             "--pt_pooling", "avg",
+    #             "--pt_input_dropout", "0.00",
+    #             "--scheduler", "cosine",
+    #             "--early_stopping", "12"]
+    # },
+    #  # 2) 仅增强权重衰减（压末端过拟合）
+    # {
+    #     "name": "pTSM-FD002-wd5e-4_lr8e-4",
+    #     "cmd": ["python", "train.py",
+    #             "--model", "ptsmixer",
+    #             "--fault", "FD002",
+    #             "--batch_size", "192",
+    #             "--epochs", "60",
+    #             "--learning_rate", "8e-4",
+    #             "--weight_decay", "5e-4",
+    #             "--pt_depth", "6",
+    #             "--pt_ch_expand", "4",
+    #             "--pt_t_kernel", "11",
+    #             "--pt_t_dilation", "2",
+    #             "--pt_t_ffn_expand", "1",
+    #             "--pt_droppath", "0.20",
+    #             "--pt_branch_dropout", "0.10",
+    #             "--pt_pooling", "avg",
+    #             "--pt_input_dropout", "0.00",
+    #             "--scheduler", "cosine",
+    #             "--early_stopping", "12"]
+    # },
+    # # 3) wd↑ + lr↓ + plateau（更稳的尾期微调）
+    # {
+    #     "name": "pTSM-FD002-wd5e-4_lr6e-4_plateau",
+    #     "cmd": ["python", "train.py",
+    #             "--model", "ptsmixer",
+    #             "--fault", "FD002",
+    #             "--batch_size", "192",
+    #             "--epochs", "60",
+    #             "--learning_rate", "6e-4",
+    #             "--weight_decay", "5e-4",
+    #             "--pt_depth", "6",
+    #             "--pt_ch_expand", "4",
+    #             "--pt_t_kernel", "11",
+    #             "--pt_t_dilation", "2",
+    #             "--pt_t_ffn_expand", "1",
+    #             "--pt_droppath", "0.20",
+    #             "--pt_branch_dropout", "0.10",
+    #             "--pt_pooling", "avg",
+    #             "--pt_input_dropout", "0.00",
+    #             "--scheduler", "plateau",
+    #             "--early_stopping", "12"]
+    # },
+
+    # # 4) 感受野对照：kernel 9 / dilation 2（更平滑）
+    # {
+    #     "name": "pTSM-FD002-ker9_dil2",
+    #     "cmd": ["python", "train.py",
+    #             "--model", "ptsmixer",
+    #             "--fault", "FD002",
+    #             "--batch_size", "192",
+    #             "--epochs", "60",
+    #             "--learning_rate", "8e-4",
+    #             "--weight_decay", "2e-4",
+    #             "--pt_depth", "6",
+    #             "--pt_ch_expand", "4",
+    #             "--pt_t_kernel", "9",
+    #             "--pt_t_dilation", "2",
+    #             "--pt_t_ffn_expand", "1",
+    #             "--pt_droppath", "0.20",
+    #             "--pt_branch_dropout", "0.10",
+    #             "--pt_pooling", "avg",
+    #             "--pt_input_dropout", "0.00",
+    #             "--scheduler", "cosine",
+    #             "--early_stopping", "12"]
+    # },
+
+    # # 5) 感受野对照：kernel 7 / dilation 3（更大有效视野、低参数）
+    # {
+    #     "name": "pTSM-FD002-ker7_dil3",
+    #     "cmd": ["python", "train.py",
+    #             "--model", "ptsmixer",
+    #             "--fault", "FD002",
+    #             "--batch_size", "192",
+    #             "--epochs", "60",
+    #             "--learning_rate", "8e-4",
+    #             "--weight_decay", "2e-4",
+    #             "--pt_depth", "6",
+    #             "--pt_ch_expand", "4",
+    #             "--pt_t_kernel", "7",
+    #             "--pt_t_dilation", "3",
+    #             "--pt_t_ffn_expand", "1",
+    #             "--pt_droppath", "0.20",
+    #             "--pt_branch_dropout", "0.10",
+    #             "--pt_pooling", "avg",
+    #             "--pt_input_dropout", "0.00",
+    #             "--scheduler", "cosine",
+    #             "--early_stopping", "12"]
+    # },
+
+    # # 6) 深度↑ + DropPath↑（表征更强 + 正则配套）
+    # {
+    #     "name": "pTSM-FD002-depth8_dp0.25",
+    #     "cmd": ["python", "train.py",
+    #             "--model", "ptsmixer",
+    #             "--fault", "FD002",
+    #             "--batch_size", "192",
+    #             "--epochs", "80",
+    #             "--learning_rate", "6e-4",
+    #             "--weight_decay", "5e-4",
+    #             "--pt_depth", "8",
+    #             "--pt_ch_expand", "4",
+    #             "--pt_t_kernel", "9",
+    #             "--pt_t_dilation", "2",
+    #             "--pt_t_ffn_expand", "1",
+    #             "--pt_droppath", "0.25",
+    #             "--pt_branch_dropout", "0.10",
+    #             "--pt_pooling", "avg",
+    #             "--pt_input_dropout", "0.00",
+    #             "--scheduler", "cosine",
+    #             "--early_stopping", "15"]
+    # },
+
+    # # 7) 通道扩展↑（ch_expand=6），保留正则
+    # {
+    #     "name": "pTSM-FD002-chx6_dp0.20",
+    #     "cmd": ["python", "train.py",
+    #             "--model", "ptsmixer",
+    #             "--fault", "FD002",
+    #             "--batch_size", "192",
+    #             "--epochs", "60",
+    #             "--learning_rate", "8e-4",
+    #             "--weight_decay", "2e-4",
+    #             "--pt_depth", "6",
+    #             "--pt_ch_expand", "6",
+    #             "--pt_t_kernel", "11",
+    #             "--pt_t_dilation", "2",
+    #             "--pt_t_ffn_expand", "1",
+    #             "--pt_droppath", "0.20",
+    #             "--pt_branch_dropout", "0.10",
+    #             "--pt_pooling", "avg",
+    #             "--pt_input_dropout", "0.00",
+    #             "--scheduler", "cosine",
+    #             "--early_stopping", "12"]
+    # },
+
+    # # 8) “稳健拉低”组合（wd↑ + lr↓ + ker9 + plateau）
+    # {
+    #     "name": "pTSM-FD002-steady-wd5e-4_lr6e-4_ker9_plateau",
+    #     "cmd": ["python", "train.py",
+    #             "--model", "ptsmixer",
+    #             "--fault", "FD002",
+    #             "--batch_size", "192",
+    #             "--epochs", "60",
+    #             "--learning_rate", "6e-4",
+    #             "--weight_decay", "5e-4",
+    #             "--pt_depth", "6",
+    #             "--pt_ch_expand", "4",
+    #             "--pt_t_kernel", "9",
+    #             "--pt_t_dilation", "2",
+    #             "--pt_t_ffn_expand", "1",
+    #             "--pt_droppath", "0.20",
+    #             "--pt_branch_dropout", "0.10",
+    #             "--pt_pooling", "avg",
+    #             "--pt_input_dropout", "0.00",
+    #             "--scheduler", "plateau",
+    #             "--early_stopping", "12"]
+    # },
         
         # ============================================================================
         # TSMixer-SGA 新模型实验 - 带双维可扩展全局注意力的TSMixer
         # ============================================================================
+        
+        # {
+        #     "name": "🟩 FD002-A: 提高token粒度（patch=4）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool",
+        #            "--fault", "FD002",
+        #            "--batch_size", "192",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0002",
+        #            "--patch", "4",
+        #            "--d_model", "160",
+        #            "--depth", "5",
+        #            "--token_mlp_dim", "320",
+        #            "--channel_mlp_dim", "160",
+        #            "--dropout", "0.12",
+        #            "--cnn_pool", "weighted",
+        #            "--tokenpool_heads", "8",
+        #            "--tokenpool_dropout", "0.12",
+        #            "--tokenpool_temperature", "1.8",
+        #            "--scheduler", "cosine",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🟦 FD002-B: 多头分工（heads=10, 温度2.0）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool",
+        #            "--fault", "FD002",
+        #            "--batch_size", "192",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0002",
+        #            "--patch", "5",
+        #            "--d_model", "200",
+        #            "--depth", "5",
+        #            "--token_mlp_dim", "400",
+        #            "--channel_mlp_dim", "200",
+        #            "--dropout", "0.12",
+        #            "--cnn_pool", "weighted",
+        #            "--tokenpool_heads", "10",
+        #            "--tokenpool_dropout", "0.12",
+        #            "--tokenpool_temperature", "2.0",
+        #            "--scheduler", "cosine",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🟨 FD002-C: 更细粒度上限（patch=3）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool",
+        #            "--fault", "FD002",
+        #            "--batch_size", "160",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0002",
+        #            "--patch", "3",
+        #            "--d_model", "160",
+        #            "--depth", "5",
+        #            "--token_mlp_dim", "384",
+        #            "--channel_mlp_dim", "160",
+        #            "--dropout", "0.14",
+        #            "--cnn_pool", "weighted",
+        #            "--tokenpool_heads", "8",
+        #            "--tokenpool_dropout", "0.14",
+        #            "--tokenpool_temperature", "1.9",
+        #            "--scheduler", "cosine",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🟪 FD002-D: 大容量稳态（d_model↑, depth↑）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool",
+        #            "--fault", "FD002",
+        #            "--batch_size", "160",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0007",
+        #            "--weight_decay", "0.00025",
+        #            "--patch", "5",
+        #            "--d_model", "192",
+        #            "--depth", "6",
+        #            "--token_mlp_dim", "384",
+        #            "--channel_mlp_dim", "192",
+        #            "--dropout", "0.13",
+        #            "--cnn_pool", "weighted",
+        #            "--tokenpool_heads", "8",
+        #            "--tokenpool_dropout", "0.12",
+        #            "--tokenpool_temperature", "1.7",
+        #            "--scheduler", "cosine",
+        #            "--early_stopping", "14"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🟥 FD002-E: 末端更关注（pool=last 对照）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool",
+        #            "--fault", "FD002",
+        #            "--batch_size", "192",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0002",
+        #            "--patch", "4",
+        #            "--d_model", "160",
+        #            "--depth", "5",
+        #            "--token_mlp_dim", "320",
+        #            "--channel_mlp_dim", "160",
+        #            "--dropout", "0.12",
+        #            "--cnn_pool", "last",
+        #            "--tokenpool_heads", "8",
+        #            "--tokenpool_dropout", "0.12",
+        #            "--tokenpool_temperature", "1.8",
+        #            "--scheduler", "plateau",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
+    
         
         {
             "name": "🟩 TSMixer-SGA-1: FD002基础+SGA（稳健起步）",
