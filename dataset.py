@@ -231,9 +231,21 @@ class CMAPSSDataset(Dataset):
 
         return torch.from_numpy(x), torch.tensor([y], dtype=torch.float32)
 
-    def get_dataloader(self, batch_size=32, shuffle=True, num_workers=0, drop_last=False, pin_memory=False) -> DataLoader:
-        return DataLoader(self, batch_size=batch_size, shuffle=shuffle,
-                          num_workers=num_workers, drop_last=drop_last, pin_memory=pin_memory)
+    def get_dataloader(self, batch_size=32, shuffle=True, num_workers=0, drop_last=False, pin_memory=False, 
+                      persistent_workers=False, prefetch_factor=None) -> DataLoader:
+        kwargs = {
+            'batch_size': batch_size, 
+            'shuffle': shuffle,
+            'num_workers': num_workers, 
+            'drop_last': drop_last, 
+            'pin_memory': pin_memory
+        }
+        # persistent_workers和prefetch_factor仅在num_workers>0时有效
+        if num_workers > 0:
+            kwargs['persistent_workers'] = persistent_workers
+            if prefetch_factor is not None:
+                kwargs['prefetch_factor'] = prefetch_factor
+        return DataLoader(self, **kwargs)
 
     @property
     def n_units(self) -> int:

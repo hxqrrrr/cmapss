@@ -241,23 +241,42 @@ class BaseRULModel(ABC):
 
     @torch.no_grad()
     def evaluate_last_window(self, test_dataset, clip_max: float = 125.0) -> Tuple[float, float]:
+        """
+        每台测试发动机取最后一个窗口，返回 (RMSE, Score)
+        优化版本：批量处理所有最后窗口 + AMP 混合精度，大幅提升GPU利用率
+        """
         self.model.eval()
         last_preds, last_targets = [], []
-        use_amp = bool(getattr(self, "use_amp", True) and torch.cuda.is_available())
-        amp_dtype = (
-            torch.bfloat16
-            if hasattr(torch.cuda, "is_bf16_supported") and torch.cuda.is_bf16_supported()
-            else torch.float16
-        )
-        with torch.amp.autocast("cuda", enabled=use_amp, dtype=amp_dtype):
-            for uid in test_dataset.units:
-                unit_indices = [i for i, (u, _) in enumerate(test_dataset.sample_index) if u == uid]
-                if unit_indices:
-                    x, y = test_dataset[unit_indices[-1]]
-                    x = x.unsqueeze(0).to(self.device)   # (1,L,C)
-                    pred = self.model(x)                 # (1,)
-                    last_preds.append(float(pred.item()))
-                    last_targets.append(float(y.item()))
+        last_samples_x, last_samples_y = [], []
+
+        # 第一步：收集所有最后窗口的样本
+        for uid in test_dataset.units:
+            unit_indices = [i for i, (u, _) in enumerate(test_dataset.sample_index) if u == uid]
+            if unit_indices:
+                x, y = test_dataset[unit_indices[-1]]
+                last_samples_x.append(x)
+                last_samples_y.append(y)
+        
+        # 第二步：批量处理（大幅提升GPU利用率） + AMP 混合精度加速
+        if last_samples_x:
+            # 将所有样本堆叠成一个大batch
+            batch_x = torch.stack(last_samples_x).to(self.device)  # (N, L, C)
+            batch_y = torch.stack(last_samples_y).to(self.device)  # (N, 1)
+            
+            # 使用 AMP 加速推理
+            use_amp = bool(getattr(self, "use_amp", True) and torch.cuda.is_available())
+            amp_dtype = (
+                torch.bfloat16
+                if hasattr(torch.cuda, "is_bf16_supported") and torch.cuda.is_bf16_supported()
+                else torch.float16
+            )
+            with torch.amp.autocast("cuda", enabled=use_amp, dtype=amp_dtype):
+                # 一次性处理所有样本
+                batch_pred = self.model(batch_x)  # (N, 1) 或 (N,)
+            
+            # 转换为列表（先转换为 float32，因为 BFloat16 不被 numpy 直接支持）
+            last_preds = batch_pred.view(-1).float().cpu().numpy().tolist()
+            last_targets = batch_y.view(-1).float().cpu().numpy().tolist()
         if last_preds:
             pred_t = torch.tensor(last_preds)
             target_t = torch.tensor(last_targets)
