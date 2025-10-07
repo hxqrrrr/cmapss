@@ -1018,7 +1018,7 @@ def main():
             "cmd": ["python", "train.py",
                    "--model", "tsmixer_sga",
                    "--fault", "FD002",
-                   "--batch_size", "192",
+                   "--batch_size", "3072",  # 充分利用RTX 3090的24GB显存
                    "--epochs", "70",
                    "--learning_rate", "0.0009",
                    "--weight_decay", "0.0002",
