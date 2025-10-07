@@ -38,18 +38,15 @@ except Exception:
 def parse_args():
     parser = argparse.ArgumentParser(description='CMAPSS RUL Prediction Training')
 
-    # 模型选择（新增 tsmixer_eca）
+    # 模型选择（合并所有模型类型）
     parser.add_argument(
         "--model", type=str, default="transformer",
         choices=[
-            "tsmixer", "tsmixer_eca", "transformer", "bilstm", "rbmlstm",
-            "cnn_tsmixer", "cnn_tsmixer_gated", "tokenpool", "ptsmixer","tsmixer_ptsa","tsmixer_ptsa_cond" 
+            "tsmixer", "tsmixer_eca", "tsmixer_sga", "transformer", "bilstm", "rbmlstm",
+            "cnn_tsmixer", "cnn_tsmixer_gated", "tokenpool", "ptsmixer", "tsmixer_ptsa", "tsmixer_ptsa_cond" 
         ],
         help="选择模型架构"
     )
-    # 模型选择
-    parser.add_argument("--model", type=str, default="transformer",
-                        choices=["tsmixer", "tsmixer_sga", "transformer", "bilstm", "rbmlstm", "cnn_tsmixer", "cnn_tsmixer_gated", "tokenpool"], help="选择模型架构")
 
     # 数据集配置
     parser.add_argument("--fault", type=str, default="FD001",
@@ -171,12 +168,11 @@ def parse_args():
     parser.add_argument("--drop_path", type=float, default=0.0, help="可选 Stochastic Depth 比例")
 
 
-    # 在 NEW: TSMixer+PTSA 特定参数 后面追加
-    parser.add_argument("--cond_dim", type=int, default=3)
-    parser.add_argument("--film_hidden", type=int, default=32)   #（保留给后续进阶版）
-    # parser.add_argument("--eca_kernel", type=int, default=5)
-    parser.add_argument("--time_kernel", type=int, default=11)
-    parser.add_argument("--use_post_gate", action="store_true", default=False)
+    # === TSMixer+PTSA+Cond 条件门控参数 ===
+    parser.add_argument("--cond_dim", type=int, default=3, help="条件变量维度（如工况设置数）")
+    parser.add_argument("--film_hidden", type=int, default=32, help="FiLM隐藏层维度")
+    parser.add_argument("--time_kernel", type=int, default=11, help="时间门控卷积核大小")
+    parser.add_argument("--use_post_gate", action="store_true", default=False, help="是否使用后置门控")
 
 
 
@@ -293,11 +289,9 @@ def create_model(args, input_size, seq_len):
             dropout=args.dropout
         )
 
-    # === 新增：ECA + BiTCN + TSMixer ===
+    # === ECA + BiTCN + TSMixer ===
     elif args.model == "tsmixer_eca":
         model = ECATSMixerModel(
-    elif args.model == "tsmixer_sga":
-        model = TSMixerSGAModel(
             input_size=input_size, seq_len=seq_len,
             num_layers=args.tsmixer_layers,
             time_expansion=args.time_expansion,
@@ -312,7 +306,14 @@ def create_model(args, input_size, seq_len):
             tcn_dropout=args.tcn_dropout,
             tcn_fuse=args.tcn_fuse
         )
-
+    
+    # === TSMixer + SGA 注意力 ===
+    elif args.model == "tsmixer_sga":
+        model = TSMixerSGAModel(
+            input_size=input_size, seq_len=seq_len,
+            num_layers=args.tsmixer_layers,
+            time_expansion=args.time_expansion,
+            feat_expansion=args.feat_expansion,
             dropout=args.dropout,
             use_sga=args.use_sga,
             sga_time_rr=args.sga_time_rr,
