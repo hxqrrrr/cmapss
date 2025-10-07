@@ -23,7 +23,11 @@ from models.tsmixer_cnn_gated import CNNMixerGatedRULModel
 from models.tsmixer_gated_tokenpool import TokenPoolRULModel
 from models.parallel_tsmixer_rul import ParallelTSMixerRUL
 from models.tsmixer_eca_model import ECATSMixerModel
-from models.tsmixer_ptsa import ModelTSMixerPTSA 
+from models.tsmixer_ptsa import ModelTSMixerPTSA
+from models.tsmixer_sga_kg import TSMixerSGAKGRULModel
+from models.tsmixer_mts import MTSTSMixerRULModel
+from models.tsmixer_mts_sga import TSMixerMTS_SGA_RULModel
+from models.tokenpool_tsmixer_sga import TokenPoolTSMixerSGAModel 
 
 # ======= 性能相关：允许 TF32 + cuDNN benchmark（固定长度时会提速） =======
 torch.backends.cuda.matmul.allow_tf32 = True
@@ -42,8 +46,9 @@ def parse_args():
     parser.add_argument(
         "--model", type=str, default="transformer",
         choices=[
-            "tsmixer", "tsmixer_eca", "tsmixer_sga", "transformer", "bilstm", "rbmlstm",
-            "cnn_tsmixer", "cnn_tsmixer_gated", "tokenpool", "ptsmixer", "tsmixer_ptsa", "tsmixer_ptsa_cond" 
+            "tsmixer", "tsmixer_eca", "tsmixer_sga", "tsmixer_sga_kg", "tsmixer_mts", "tsmixer_mts_sga", 
+            "transformer", "bilstm", "rbmlstm",
+            "cnn_tsmixer", "cnn_tsmixer_gated", "tokenpool", "tokenpool_sga", "ptsmixer", "tsmixer_ptsa", "tsmixer_ptsa_cond" 
         ],
         help="选择模型架构"
     )
@@ -99,6 +104,19 @@ def parse_args():
     parser.add_argument("--sga_dropout", type=float, default=0.05, help="SGA内部dropout")
     parser.add_argument("--sga_pool", type=str, default="mean", 
                         choices=["mean", "last", "weighted"], help="TSMixer-SGA池化方式")
+    parser.add_argument("--lambda_prior", type=float, default=0.5, help="知识引导SGA的先验门控权重λ")
+    parser.add_argument("--kg_pool", type=str, default="weighted",
+                        choices=["mean", "last", "weighted"], help="TSMixer-SGA-KG池化方式")
+    
+    # MTS-TSMixer特定参数（多尺度时间混合）
+    parser.add_argument("--mts_gate_hidden", type=int, default=16, help="MTS门控MLP隐藏层维度")
+    parser.add_argument("--mts_scales", type=str, default="3-1,3-2,5-3,7-4", 
+                        help="MTS时间尺度配置，格式：kernel-dilation,...（例如：3-1,3-2,5-3,7-4）")
+    
+    # MTS-TSMixer-SGA特定参数（多尺度+双轴注意力）
+    parser.add_argument("--mts_sga_time_hidden", type=int, default=16, help="MTS-SGA时间轴注意力隐藏层")
+    parser.add_argument("--mts_sga_feat_hidden", type=int, default=16, help="MTS-SGA特征轴注意力隐藏层")
+    parser.add_argument("--mts_sga_dropout", type=float, default=0.05, help="MTS-SGA注意力dropout")
     
     # BiLSTM特定参数
     parser.add_argument("--lstm_hidden", type=int, default=64, help="LSTM隐藏层维度")
@@ -141,6 +159,15 @@ def parse_args():
     parser.add_argument("--tokenpool_heads", type=int, default=4, help="TokenPool注意力头数")
     parser.add_argument("--tokenpool_dropout", type=float, default=0.0, help="TokenPool注意力dropout")
     parser.add_argument("--tokenpool_temperature", type=float, default=1.5, help="TokenPool注意力温度")
+    
+    # TokenPool-SGA特定参数（复用上面的tokenpool参数 + 新增SGA参数）
+    parser.add_argument("--tokenpool_sga_time_hidden", type=int, default=24, help="TokenPool-SGA时间轴注意力隐藏层")
+    parser.add_argument("--tokenpool_sga_feat_hidden", type=int, default=24, help="TokenPool-SGA特征轴注意力隐藏层")
+    parser.add_argument("--tokenpool_sga_dropout", type=float, default=0.05, help="TokenPool-SGA注意力dropout")
+    parser.add_argument("--tokenpool_sga_fuse", type=str, default="add", choices=["add", "hadamard"], 
+                        help="TokenPool-SGA注意力融合方式")
+    parser.add_argument("--tokenpool_sga_every_k", type=int, default=0, 
+                        help="TokenPool-SGA每k层插入一次SGA（0=仅尾部）")
 
     # pTSMixer（并行时间/特征双支）特定参数
     parser.add_argument("--pt_depth", type=int, default=6, help="pTSMixer Block 层数")
@@ -229,6 +256,36 @@ def _parse_tcn_dilations(dils: str):
     except Exception:
         logging.getLogger(__name__).warning(f"无法解析 tcn_dilations='{dils}'，改用默认 [1,2]")
         return [1, 2]
+
+
+def _parse_mts_scales(scales_str: str, time_expansion: int = 4):
+    """
+    解析 MTS 时间尺度配置字符串
+    格式：kernel-dilation,...
+    例如：3-1,3-2,5-3,7-4
+    返回：[{"kernel": 3, "dilation": 1, "expansion": time_expansion}, ...]
+    """
+    try:
+        scales = []
+        for s in scales_str.split(","):
+            s = s.strip()
+            if s:
+                parts = s.split("-")
+                if len(parts) == 2:
+                    k, d = int(parts[0]), int(parts[1])
+                    scales.append({"kernel": k, "dilation": d, "expansion": time_expansion})
+        if scales:
+            return scales
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"无法解析 mts_scales='{scales_str}'，使用默认配置: {e}")
+    
+    # 默认配置：4个尺度（短/中/长/超长）
+    return [
+        {"kernel": 3, "dilation": 1, "expansion": time_expansion},
+        {"kernel": 3, "dilation": 2, "expansion": time_expansion},
+        {"kernel": 5, "dilation": 3, "expansion": time_expansion},
+        {"kernel": 7, "dilation": 4, "expansion": time_expansion},
+    ]
 
 
 def create_datasets(args):
@@ -321,6 +378,52 @@ def create_model(args, input_size, seq_len):
             sga_dropout=args.sga_dropout,
             pool=args.sga_pool
         )
+    
+    # === TSMixer + SGA + 知识引导 (Knowledge-Guided) ===
+    elif args.model == "tsmixer_sga_kg":
+        model = TSMixerSGAKGRULModel(
+            input_size=input_size, seq_len=seq_len,
+            num_layers=args.tsmixer_layers,
+            time_expansion=args.time_expansion,
+            feat_expansion=args.feat_expansion,
+            dropout=args.dropout,
+            rr_time=args.sga_time_rr,
+            rr_feat=args.sga_feat_rr,
+            lambda_prior=args.lambda_prior,
+            sga_dropout=args.sga_dropout,
+            pool=args.kg_pool
+        )
+    
+    # === MTS-TSMixer (多尺度时间混合) ===
+    elif args.model == "tsmixer_mts":
+        time_scales = _parse_mts_scales(args.mts_scales, args.time_expansion)
+        model = MTSTSMixerRULModel(
+            input_size=input_size,
+            seq_len=seq_len,
+            num_layers=args.tsmixer_layers,
+            time_expansion=args.time_expansion,
+            feat_expansion=args.feat_expansion,
+            dropout=args.dropout,
+            gate_hidden=args.mts_gate_hidden,
+            time_scales=time_scales
+        )
+    
+    # === MTS-TSMixer-SGA (多尺度时间混合 + 双轴注意力) ===
+    elif args.model == "tsmixer_mts_sga":
+        model = TSMixerMTS_SGA_RULModel(
+            input_size=input_size,
+            seq_len=seq_len,
+            tsmixer_layers=args.tsmixer_layers,
+            time_expansion=args.time_expansion,
+            feat_expansion=args.feat_expansion,
+            dropout=args.dropout,
+            mts_scales=args.mts_scales,
+            mts_gate_hidden=args.mts_gate_hidden,
+            sga_time_hidden=args.mts_sga_time_hidden,
+            sga_feat_hidden=args.mts_sga_feat_hidden,
+            sga_dropout=args.mts_sga_dropout
+        )
+    
     elif args.model == "bilstm":
         model = BiLSTMModel(
             input_size=input_size, seq_len=seq_len,
@@ -389,6 +492,29 @@ def create_model(args, input_size, seq_len):
             tokenpool_heads=args.tokenpool_heads,
             tokenpool_dropout=args.tokenpool_dropout,
             tokenpool_temperature=args.tokenpool_temperature
+        )
+    
+    # === TokenPool + TSMixer + SGA ===
+    elif args.model == "tokenpool_sga":
+        model = TokenPoolTSMixerSGAModel(
+            input_size=input_size,
+            seq_len=seq_len,
+            patch=args.patch,
+            d_model=args.d_model,
+            depth=args.depth,
+            token_mlp_dim=args.token_mlp_dim,
+            channel_mlp_dim=args.channel_mlp_dim,
+            dropout=args.dropout,
+            pool=args.cnn_pool,
+            tokenpool_heads=args.tokenpool_heads,
+            tokenpool_dropout=args.tokenpool_dropout,
+            tokenpool_temperature=args.tokenpool_temperature,
+            use_sga=True,
+            sga_time_hidden=args.tokenpool_sga_time_hidden,
+            sga_feat_hidden=args.tokenpool_sga_feat_hidden,
+            sga_dropout=args.tokenpool_sga_dropout,
+            sga_fuse=args.tokenpool_sga_fuse,
+            sga_every_k=args.tokenpool_sga_every_k
         )
 
     elif args.model == "ptsmixer":

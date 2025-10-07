@@ -274,9 +274,9 @@ class BaseRULModel(ABC):
                 # 一次性处理所有样本
                 batch_pred = self.model(batch_x)  # (N, 1) 或 (N,)
             
-            # 转换为列表
-            last_preds = batch_pred.view(-1).cpu().numpy().tolist()
-            last_targets = batch_y.view(-1).cpu().numpy().tolist()
+            # 转换为列表（先转换为 float32，因为 BFloat16 不被 numpy 直接支持）
+            last_preds = batch_pred.view(-1).float().cpu().numpy().tolist()
+            last_targets = batch_y.view(-1).float().cpu().numpy().tolist()
         if last_preds:
             pred_t = torch.tensor(last_preds)
             target_t = torch.tensor(last_targets)

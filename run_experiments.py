@@ -222,10 +222,10 @@ def main():
     #     "--early_stopping","32"
     #     ]
     # }
-        {
-        "name": "🔧A1 | FE×8 · TSL=6 · Dropout 0.04 · wd 8e-5 · dils 1,2 · mean",
-        "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00008","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.04","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
-        },
+        # {
+        # "name": "🔧A1 | FE×8 · TSL=6 · Dropout 0.04 · wd 8e-5 · dils 1,2 · mean",
+        # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00008","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.04","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
+        # },
         # {
         # "name": "🔧A2 | FE×8 · TSL=6 · Dropout 0.03 · wd 8e-5 · dils 1,2 · mean",
         # "cmd": ["python","train.py","--model","tsmixer_eca","--fault","FD002","--use_eca","--eca_kernel","5","--use_bitcn","--tcn_kernel","3","--tcn_dilations","1,2","--tcn_fuse","mean","--batch_size","576","--epochs","180","--learning_rate","0.00032","--weight_decay","0.00008","--tsmixer_layers","6","--time_expansion","4","--feat_expansion","8","--dropout","0.03","--tcn_dropout","0.10","--scheduler","cosine","--warmup_epochs","8","--early_stopping","32"]
@@ -1013,140 +1013,607 @@ def main():
         # },
     
         
-        {
-            "name": "🟩 TSMixer-SGA-1: FD002基础+SGA（稳健起步）",
-            "cmd": ["python", "train.py",
-                   "--model", "tsmixer_sga",
-                   "--fault", "FD002",
-                   "--batch_size", "3072",  # 充分利用RTX 3090的24GB显存
-                   "--epochs", "70",
-                   "--learning_rate", "0.0009",
-                   "--weight_decay", "0.0002",
-                   "--tsmixer_layers", "5",
-                   "--time_expansion", "4",
-                   "--feat_expansion", "4",
-                   "--dropout", "0.12",
-                   "--use_sga",
-                   "--sga_time_rr", "4",
-                   "--sga_feat_rr", "4",
-                   "--sga_dropout", "0.05",
-                   "--sga_pool", "weighted",       # 多工况更稳
-                   "--scheduler", "plateau",
-                   "--early_stopping", "12"
-                   ]
-        },
+        # ============================================================================
+        # MTS-TSMixer 多尺度时间混合实验 - 新模型测试
+        # ============================================================================
+        
+        # {
+        #     "name": "🔥 MTS-1: 基础4尺度配置（3-1,3-2,5-3,7-4）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_mts",
+        #            "--fault", "FD002",
+        #            "--batch_size", "2304",         # 优化：增大batch size
+        #            "--num_workers", "32",          # 优化：增加workers
+        #            "--prefetch_factor", "8",       # 优化：增加预取
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0002",
+        #            "--tsmixer_layers", "6",
+        #            "--time_expansion", "4",        # 每个尺度的扩展
+        #            "--feat_expansion", "6",
+        #            "--dropout", "0.12",
+        #            "--mts_scales", "3-1,3-2,5-3,7-4",  # 4个时间尺度
+        #            "--mts_gate_hidden", "16",      # 门控隐藏层
+        #            "--scheduler", "cosine",
+        #            "--warmup_epochs", "8",
+        #            "--early_stopping", "15"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🌊 MTS-2: 密集小尺度（3-1,3-2,3-3,5-2）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_mts",
+        #            "--fault", "FD002",
+        #            "--batch_size", "2304",         # 优化：增大batch size
+        #            "--num_workers", "32",          # 优化：增加workers
+        #            "--prefetch_factor", "8",       # 优化：增加预取
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0002",
+        #            "--tsmixer_layers", "6",
+        #            "--time_expansion", "5",
+        #            "--feat_expansion", "6",
+        #            "--dropout", "0.12",
+        #            "--mts_scales", "3-1,3-2,3-3,5-2",  # 密集小卷积核
+        #            "--mts_gate_hidden", "20",
+        #            "--scheduler", "cosine",
+        #            "--warmup_epochs", "8",
+        #            "--early_stopping", "15"
+        #            ]
+        # },
+        
+       
+
+        # ============================================================================
+        # TSMixer-MTS-SGA 多尺度+双轴注意力实验 (FD002)
+        # ============================================================================
+        
+        # {
+        #     "name": "⚙️ MTS-SGA-1: 偏短期敏感（3-1,5-1,5-2,7-2）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_mts_sga",
+        #            "--fault", "FD002",
+        #            "--batch_size", "3072",
+        #            "--num_workers", "32",
+        #            "--prefetch_factor", "8",
+        #            "--epochs", "80",
+        #            "--learning_rate", "0.0011",
+        #            "--weight_decay", "0.00018",
+        #            "--tsmixer_layers", "5",
+        #            "--time_expansion", "6",
+        #            "--feat_expansion", "4",
+        #            "--dropout", "0.10",
+        #            "--mts_scales", "3-1,5-1,5-2,7-2",
+        #            "--mts_gate_hidden", "16",
+        #            "--mts_sga_time_hidden", "24",
+        #            "--mts_sga_feat_hidden", "24",
+        #            "--mts_sga_dropout", "0.08",
+        #            "--scheduler", "plateau",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "⚡ MTS-SGA-2: 大感受野（5-2,7-3,9-4,11-5）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_mts_sga",
+        #            "--fault", "FD002",
+        #            "--batch_size", "2048",
+        #            "--num_workers", "32",
+        #            "--prefetch_factor", "8",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0007",
+        #            "--weight_decay", "0.00025",
+        #            "--tsmixer_layers", "6",
+        #            "--time_expansion", "4",
+        #            "--feat_expansion", "5",
+        #            "--dropout", "0.14",
+        #            "--mts_scales", "5-2,7-3,9-4,11-5",
+        #            "--mts_gate_hidden", "24",
+        #            "--mts_sga_time_hidden", "16",
+        #            "--mts_sga_feat_hidden", "16",
+        #            "--mts_sga_dropout", "0.06",
+        #            "--scheduler", "cosine",
+        #            "--warmup_epochs", "10",
+        #            "--early_stopping", "15"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🎯 MTS-SGA-3: 3尺度轻量版（3-1,5-2,7-3）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_mts_sga",
+        #            "--fault", "FD002",
+        #            "--batch_size", "3072",
+        #            "--num_workers", "32",
+        #            "--prefetch_factor", "8",
+        #            "--epochs", "80",
+        #            "--learning_rate", "0.0010",
+        #            "--weight_decay", "0.00020",
+        #            "--tsmixer_layers", "5",
+        #            "--time_expansion", "5",
+        #            "--feat_expansion", "4",
+        #            "--dropout", "0.10",
+        #            "--mts_scales", "3-1,5-2,7-3",
+        #            "--mts_gate_hidden", "12",
+        #            "--mts_sga_time_hidden", "16",
+        #            "--mts_sga_feat_hidden", "16",
+        #            "--mts_sga_dropout", "0.05",
+        #            "--scheduler", "plateau",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "💪 MTS-SGA-4: 5尺度深层版（3-1,5-1,5-2,7-2,9-3）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_mts_sga",
+        #            "--fault", "FD002",
+        #            "--batch_size", "1792",
+        #            "--num_workers", "32",
+        #            "--prefetch_factor", "8",
+        #            "--epochs", "120",
+        #            "--learning_rate", "0.0006",
+        #            "--weight_decay", "0.00030",
+        #            "--tsmixer_layers", "8",
+        #            "--time_expansion", "4",
+        #            "--feat_expansion", "6",
+        #            "--dropout", "0.15",
+        #            "--mts_scales", "3-1,5-1,5-2,7-2,9-3",
+        #            "--mts_gate_hidden", "32",
+        #            "--mts_sga_time_hidden", "24",
+        #            "--mts_sga_feat_hidden", "24",
+        #            "--mts_sga_dropout", "0.08",
+        #            "--scheduler", "cosine",
+        #            "--warmup_epochs", "10",
+        #            "--early_stopping", "18"
+        #            ]
+        # },
+
+        # ============================================================================
+        # TokenPool-TSMixer 纯注意力池化实验 (FD002)
+        # ============================================================================
         
         {
-            "name": "🚀 TSMixer-SGA-2: 深层Mixer + 轻SGA（容量↑，门控更轻）",
+            "name": "🟥 TokenPool-FD002: 末端池化+Plateau调度器（最优配置）",
             "cmd": ["python", "train.py",
-                   "--model", "tsmixer_sga",
+                   "--model", "tokenpool",
                    "--fault", "FD002",
-                   "--batch_size", "160",
-                   "--epochs", "90",
+                   "--batch_size", "1920",
+                   "--epochs", "100",
                    "--learning_rate", "0.0008",
-                   "--weight_decay", "0.00025",
-                   "--tsmixer_layers", "6",        # 深一些
-                   "--time_expansion", "5",
-                   "--feat_expansion", "4",
-                   "--dropout", "0.12",
-                   "--use_sga",
-                   "--sga_time_rr", "6",           # 更大压缩比=更轻
-                   "--sga_feat_rr", "6",
-                   "--sga_dropout", "0.05",
-                   "--sga_pool", "weighted",
-                   "--scheduler", "cosine",
-                   "--early_stopping", "14"
-                   ]
-        },
-        
-        {
-            "name": "⚡ TSMixer-SGA-3: 中层Mixer + 强SGA（更强剔噪）",
-            "cmd": ["python", "train.py",
-                   "--model", "tsmixer_sga",
-                   "--fault", "FD002",
-                   "--batch_size", "176",
-                   "--epochs", "80",
-                   "--learning_rate", "0.00085",
-                   "--weight_decay", "0.0003",
-                   "--tsmixer_layers", "5",
-                   "--time_expansion", "6",
-                   "--feat_expansion", "5",
-                   "--dropout", "0.15",            # 正则更强
-                   "--use_sga",
-                   "--sga_time_rr", "4",           # 门控更"细"
-                   "--sga_feat_rr", "4",
-                   "--sga_dropout", "0.08",
-                   "--sga_pool", "weighted",
-                   "--scheduler", "plateau",
-                   "--early_stopping", "15"
-                   ]
-        },
-        
-        {
-            "name": "🎯 TSMixer-SGA-4: 池化策略对比（末端last）",
-            "cmd": ["python", "train.py",
-                   "--model", "tsmixer_sga",
-                   "--fault", "FD002",
-                   "--batch_size", "192",
-                   "--epochs", "70",
-                   "--learning_rate", "0.0009",
                    "--weight_decay", "0.0002",
-                   "--tsmixer_layers", "5",
-                   "--time_expansion", "4",
-                   "--feat_expansion", "4",
+                   "--patch", "4",
+                   "--d_model", "160",
+                   "--depth", "5",
+                   "--token_mlp_dim", "320",
+                   "--channel_mlp_dim", "160",
                    "--dropout", "0.12",
-                   "--use_sga",
-                   "--sga_time_rr", "5",
-                   "--sga_feat_rr", "5",
-                   "--sga_dropout", "0.06",
-                   "--sga_pool", "last",           # 末期RUL更敏感
+                   "--cnn_pool", "last",
+                   "--tokenpool_heads", "8",
+                   "--tokenpool_dropout", "0.12",
+                   "--tokenpool_temperature", "1.8",
+                   "--num_workers", "32",
+                   "--prefetch_factor", "8",
                    "--scheduler", "plateau",
                    "--early_stopping", "12"
                    ]
         },
+
+        # ============================================================================
+        # TokenPool-TSMixer-SGA 注意力池化+双轴注意力实验 (FD002)
+        # ============================================================================
         
-        {
-            "name": "🧪 TSMixer-SGA-5: OneCycle收敛加速 + mean池化",
-            "cmd": ["python", "train.py",
-                   "--model", "tsmixer_sga",
-                   "--fault", "FD002",
-                   "--batch_size", "180",
-                   "--epochs", "70",
-                   "--learning_rate", "0.0010",    # OneCycle 允许略高峰值
-                   "--weight_decay", "0.0002",
-                   "--tsmixer_layers", "6",
-                   "--time_expansion", "5",
-                   "--feat_expansion", "5",
-                   "--dropout", "0.12",
-                   "--use_sga",
-                   "--sga_time_rr", "6",
-                   "--sga_feat_rr", "6",
-                   "--sga_dropout", "0.05",
-                   "--sga_pool", "mean",           # 对比 weighted/last
-                   "--scheduler", "onecycle",
-                   "--early_stopping", "12"
-                   ]
-        },
+        # {
+        #     "name": "🎨 TokenPool-SGA-1: 基础配置（patch=6, 5 tokens）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool_sga",
+        #            "--fault", "FD002",
+        #            "--batch_size", "1024",
+        #            "--num_workers", "32",
+        #            "--prefetch_factor", "8",
+        #            "--epochs", "80",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0001",
+        #            "--patch", "6",                  # 30/6=5 tokens
+        #            "--d_model", "120",              # 120 % 6 = 0 ✓
+        #            "--depth", "5",
+        #            "--token_mlp_dim", "240",
+        #            "--channel_mlp_dim", "120",
+        #            "--dropout", "0.12",
+        #            "--tokenpool_heads", "6",
+        #            "--tokenpool_dropout", "0.10",
+        #            "--tokenpool_temperature", "1.5",
+        #            "--tokenpool_sga_time_hidden", "24",
+        #            "--tokenpool_sga_feat_hidden", "24",
+        #            "--tokenpool_sga_dropout", "0.06",
+        #            "--tokenpool_sga_fuse", "add",
+        #            "--tokenpool_sga_every_k", "0",
+        #            "--scheduler", "cosine",
+        #            "--warmup_epochs", "8",
+        #            "--early_stopping", "15"
+        #            ]
+        # },
         
-        {
-            "name": "🧰 TSMixer-SGA-6: 无SGA对照（确认增益）",
-            "cmd": ["python", "train.py",
-                   "--model", "tsmixer_sga",
-                   "--fault", "FD002",
-                   "--batch_size", "192",
-                   "--epochs", "70",
-                   "--learning_rate", "0.0009",
-                   "--weight_decay", "0.0002",
-                   "--tsmixer_layers", "5",
-                   "--time_expansion", "4",
-                   "--feat_expansion", "4",
-                   "--dropout", "0.12",
-                   # 不使用 --use_sga，验证SGA的效果
-                   "--sga_pool", "weighted",       # 保持其它设置一致
-                   "--scheduler", "plateau",
-                   "--early_stopping", "12"
-                   ]
-        },
+        # {
+        #     "name": "🔮 TokenPool-SGA-2: 高温注意力（temp=1.8, 更平滑）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool_sga",
+        #            "--fault", "FD002",
+        #            "--batch_size", "1024",
+        #            "--num_workers", "32",
+        #            "--prefetch_factor", "8",
+        #            "--epochs", "80",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0001",
+        #            "--patch", "5",
+        #            "--d_model", "144",
+        #            "--depth", "5",
+        #            "--token_mlp_dim", "288",
+        #            "--channel_mlp_dim", "144",
+        #            "--dropout", "0.12",
+        #            "--tokenpool_heads", "6",
+        #            "--tokenpool_dropout", "0.10",
+        #            "--tokenpool_temperature", "1.8",
+        #            "--tokenpool_sga_time_hidden", "24",
+        #            "--tokenpool_sga_feat_hidden", "24",
+        #            "--tokenpool_sga_dropout", "0.06",
+        #            "--tokenpool_sga_fuse", "add",
+        #            "--tokenpool_sga_every_k", "0",
+        #            "--scheduler", "cosine",
+        #            "--warmup_epochs", "8",
+        #            "--early_stopping", "15"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "⚡ TokenPool-SGA-3: 分层插入SGA（every_k=2）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool_sga",
+        #            "--fault", "FD002",
+        #            "--batch_size", "896",
+        #            "--num_workers", "32",
+        #            "--prefetch_factor", "8",
+        #            "--epochs", "90",
+        #            "--learning_rate", "0.0007",
+        #            "--weight_decay", "0.00012",
+        #            "--patch", "6",
+        #            "--d_model", "120",              # 120 % 6 = 0 ✓
+        #            "--depth", "6",
+        #            "--token_mlp_dim", "240",
+        #            "--channel_mlp_dim", "120",
+        #            "--dropout", "0.12",
+        #            "--tokenpool_heads", "6",
+        #            "--tokenpool_dropout", "0.10",
+        #            "--tokenpool_temperature", "1.6",
+        #            "--tokenpool_sga_time_hidden", "32",
+        #            "--tokenpool_sga_feat_hidden", "32",
+        #            "--tokenpool_sga_dropout", "0.08",
+        #            "--tokenpool_sga_fuse", "add",
+        #            "--tokenpool_sga_every_k", "2",   # 每2层插入SGA
+        #            "--scheduler", "cosine",
+        #            "--warmup_epochs", "10",
+        #            "--early_stopping", "15"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "💎 TokenPool-SGA-4: Hadamard融合（门控乘法）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tokenpool_sga",
+        #            "--fault", "FD002",
+        #            "--batch_size", "1024",
+        #            "--num_workers", "32",
+        #            "--prefetch_factor", "8",
+        #            "--epochs", "80",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0001",
+        #            "--patch", "6",
+        #            "--d_model", "120",              # 120 % 6 = 0 ✓
+        #            "--depth", "5",
+        #            "--token_mlp_dim", "240",
+        #            "--channel_mlp_dim", "120",
+        #            "--dropout", "0.12",
+        #            "--tokenpool_heads", "6",
+        #            "--tokenpool_dropout", "0.10",
+        #            "--tokenpool_temperature", "1.5",
+        #            "--tokenpool_sga_time_hidden", "24",
+        #            "--tokenpool_sga_feat_hidden", "24",
+        #            "--tokenpool_sga_dropout", "0.06",
+        #            "--tokenpool_sga_fuse", "hadamard",  # 使用Hadamard融合
+        #            "--tokenpool_sga_every_k", "0",
+        #            "--scheduler", "cosine",
+        #            "--warmup_epochs", "8",
+        #            "--early_stopping", "15"
+        #            ]
+        # },
+
+        # ============================================================================
+        # TSMixer-SGA-KG 知识引导实验（已注释）
+        # ============================================================================
+        
+        # {
+        #     "name": "🧠 KG-1: FD002基础配置（λ=0.5, weighted池化）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_sga_kg",
+        #            "--fault", "FD002",
+        #            "--batch_size", "576",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0002",
+        #            "--tsmixer_layers", "6",
+        #            "--time_expansion", "6",
+        #            "--feat_expansion", "5",
+        #            "--dropout", "0.12",
+        #            "--sga_time_rr", "4",
+        #            "--sga_feat_rr", "4",
+        #            "--lambda_prior", "0.5",        # 先验权重平衡
+        #            "--sga_dropout", "0.08",
+        #            "--kg_pool", "weighted",        # 末端加权
+        #            "--scheduler", "cosine",
+        #            "--warmup_epochs", "8",
+        #            "--early_stopping", "15"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🔬 KG-2: 强先验引导（λ=0.7, 更依赖物理知识）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_sga_kg",
+        #            "--fault", "FD002",
+        #            "--batch_size", "576",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0002",
+        #            "--tsmixer_layers", "6",
+        #            "--time_expansion", "6",
+        #            "--feat_expansion", "5",
+        #            "--dropout", "0.12",
+        #            "--sga_time_rr", "4",
+        #            "--sga_feat_rr", "4",
+        #            "--lambda_prior", "0.7",        # 更强先验引导
+        #            "--sga_dropout", "0.08",
+        #            "--kg_pool", "weighted",
+        #            "--scheduler", "cosine",
+        #            "--warmup_epochs", "8",
+        #            "--early_stopping", "15"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "📊 KG-3: 弱先验引导（λ=0.3, 更依赖数据驱动）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_sga_kg",
+        #            "--fault", "FD002",
+        #            "--batch_size", "576",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0002",
+        #            "--tsmixer_layers", "6",
+        #            "--time_expansion", "6",
+        #            "--feat_expansion", "5",
+        #            "--dropout", "0.12",
+        #            "--sga_time_rr", "4",
+        #            "--sga_feat_rr", "4",
+        #            "--lambda_prior", "0.3",        # 更弱先验引导
+        #            "--sga_dropout", "0.08",
+        #            "--kg_pool", "weighted",
+        #            "--scheduler", "cosine",
+        #            "--warmup_epochs", "8",
+        #            "--early_stopping", "15"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🎯 KG-4: 末端聚焦（last池化）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_sga_kg",
+        #            "--fault", "FD002",
+        #            "--batch_size", "576",
+        #            "--epochs", "100",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.0002",
+        #            "--tsmixer_layers", "6",
+        #            "--time_expansion", "6",
+        #            "--feat_expansion", "5",
+        #            "--dropout", "0.12",
+        #            "--sga_time_rr", "4",
+        #            "--sga_feat_rr", "4",
+        #            "--lambda_prior", "0.5",
+        #            "--sga_dropout", "0.08",
+        #            "--kg_pool", "last",            # 仅关注最后时刻
+        #            "--scheduler", "cosine",
+        #            "--warmup_epochs", "8",
+        #            "--early_stopping", "15"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "⚡ KG-5: 轻量高效（更大压缩比rr=6）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_sga_kg",
+        #            "--fault", "FD002",
+        #            "--batch_size", "768",          # 更大批量
+        #            "--epochs", "80",
+        #            "--learning_rate", "0.001",
+        #            "--weight_decay", "0.00025",
+        #            "--tsmixer_layers", "5",
+        #            "--time_expansion", "5",
+        #            "--feat_expansion", "4",
+        #            "--dropout", "0.10",
+        #            "--sga_time_rr", "6",           # 更轻量的SGA
+        #            "--sga_feat_rr", "6",
+        #            "--lambda_prior", "0.5",
+        #            "--sga_dropout", "0.05",
+        #            "--kg_pool", "weighted",
+        #            "--scheduler", "plateau",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "💪 KG-6: 深层强化（layers=8, 强正则）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_sga_kg",
+        #            "--fault", "FD002",
+        #            "--batch_size", "384",          # 深层模型减小批量
+        #            "--epochs", "120",
+        #            "--learning_rate", "0.0006",
+        #            "--weight_decay", "0.0003",
+        #            "--tsmixer_layers", "8",        # 更深网络
+        #            "--time_expansion", "6",
+        #            "--feat_expansion", "5",
+        #            "--dropout", "0.15",            # 强正则化
+        #            "--sga_time_rr", "4",
+        #            "--sga_feat_rr", "4",
+        #            "--lambda_prior", "0.5",
+        #            "--sga_dropout", "0.10",
+        #            "--kg_pool", "weighted",
+        #            "--scheduler", "cosine",
+        #            "--warmup_epochs", "10",
+        #            "--early_stopping", "18"
+        #            ]
+        # },
+
+        # ============================================================================
+        # TSMixer-SGA 旧模型实验（已注释）
+        # ============================================================================
+        
+        # {
+        #     "name": "🟩 TSMixer-SGA-1: FD002基础+SGA（稳健起步）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_sga",
+        #            "--fault", "FD002",
+        #            "--batch_size", "3072",  # 充分利用RTX 3090的24GB显存
+        #            "--epochs", "70",
+        #            "--learning_rate", "0.0009",
+        #            "--weight_decay", "0.0002",
+        #            "--tsmixer_layers", "5",
+        #            "--time_expansion", "4",
+        #            "--feat_expansion", "4",
+        #            "--dropout", "0.12",
+        #            "--use_sga",
+        #            "--sga_time_rr", "4",
+        #            "--sga_feat_rr", "4",
+        #            "--sga_dropout", "0.05",
+        #            "--sga_pool", "weighted",       # 多工况更稳
+        #            "--scheduler", "plateau",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🚀 TSMixer-SGA-2: 深层Mixer + 轻SGA（容量↑，门控更轻）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_sga",
+        #            "--fault", "FD002",
+        #            "--batch_size", "160",
+        #            "--epochs", "90",
+        #            "--learning_rate", "0.0008",
+        #            "--weight_decay", "0.00025",
+        #            "--tsmixer_layers", "6",        # 深一些
+        #            "--time_expansion", "5",
+        #            "--feat_expansion", "4",
+        #            "--dropout", "0.12",
+        #            "--use_sga",
+        #            "--sga_time_rr", "6",           # 更大压缩比=更轻
+        #            "--sga_feat_rr", "6",
+        #            "--sga_dropout", "0.05",
+        #            "--sga_pool", "weighted",
+        #            "--scheduler", "cosine",
+        #            "--early_stopping", "14"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "⚡ TSMixer-SGA-3: 中层Mixer + 强SGA（更强剔噪）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_sga",
+        #            "--fault", "FD002",
+        #            "--batch_size", "176",
+        #            "--epochs", "80",
+        #            "--learning_rate", "0.00085",
+        #            "--weight_decay", "0.0003",
+        #            "--tsmixer_layers", "5",
+        #            "--time_expansion", "6",
+        #            "--feat_expansion", "5",
+        #            "--dropout", "0.15",            # 正则更强
+        #            "--use_sga",
+        #            "--sga_time_rr", "4",           # 门控更"细"
+        #            "--sga_feat_rr", "4",
+        #            "--sga_dropout", "0.08",
+        #            "--sga_pool", "weighted",
+        #            "--scheduler", "plateau",
+        #            "--early_stopping", "15"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🎯 TSMixer-SGA-4: 池化策略对比（末端last）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_sga",
+        #            "--fault", "FD002",
+        #            "--batch_size", "192",
+        #            "--epochs", "70",
+        #            "--learning_rate", "0.0009",
+        #            "--weight_decay", "0.0002",
+        #            "--tsmixer_layers", "5",
+        #            "--time_expansion", "4",
+        #            "--feat_expansion", "4",
+        #            "--dropout", "0.12",
+        #            "--use_sga",
+        #            "--sga_time_rr", "5",
+        #            "--sga_feat_rr", "5",
+        #            "--sga_dropout", "0.06",
+        #            "--sga_pool", "last",           # 末期RUL更敏感
+        #            "--scheduler", "plateau",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🧪 TSMixer-SGA-5: OneCycle收敛加速 + mean池化",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_sga",
+        #            "--fault", "FD002",
+        #            "--batch_size", "180",
+        #            "--epochs", "70",
+        #            "--learning_rate", "0.0010",    # OneCycle 允许略高峰值
+        #            "--weight_decay", "0.0002",
+        #            "--tsmixer_layers", "6",
+        #            "--time_expansion", "5",
+        #            "--feat_expansion", "5",
+        #            "--dropout", "0.12",
+        #            "--use_sga",
+        #            "--sga_time_rr", "6",
+        #            "--sga_feat_rr", "6",
+        #            "--sga_dropout", "0.05",
+        #            "--sga_pool", "mean",           # 对比 weighted/last
+        #            "--scheduler", "onecycle",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
+        
+        # {
+        #     "name": "🧰 TSMixer-SGA-6: 无SGA对照（确认增益）",
+        #     "cmd": ["python", "train.py",
+        #            "--model", "tsmixer_sga",
+        #            "--fault", "FD002",
+        #            "--batch_size", "192",
+        #            "--epochs", "70",
+        #            "--learning_rate", "0.0009",
+        #            "--weight_decay", "0.0002",
+        #            "--tsmixer_layers", "5",
+        #            "--time_expansion", "4",
+        #            "--feat_expansion", "4",
+        #            "--dropout", "0.12",
+        #            # 不使用 --use_sga，验证SGA的效果
+        #            "--sga_pool", "weighted",       # 保持其它设置一致
+        #            "--scheduler", "plateau",
+        #            "--early_stopping", "12"
+        #            ]
+        # },
 
         
         # ============================================================================

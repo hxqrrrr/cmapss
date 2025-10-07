@@ -209,7 +209,7 @@ class CNNMixerRULModel(BaseRULModel):  # 继承你给的 BaseRULModel
             self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=T_max)
         elif scheduler == "plateau":
             self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode="min",
-                                                                        patience=plateau_patience, factor=0.5, verbose=False)
+                                                                        patience=plateau_patience, factor=0.5)
         elif scheduler == "onecycle" and epochs is not None and steps_per_epoch is not None:
             self.scheduler = torch.optim.lr_scheduler.OneCycleLR(
                 self.optimizer, max_lr=learning_rate, 
