@@ -14,6 +14,7 @@ import torch.nn as nn
 
 from dataset import CMAPSSDataset, _xu_window_for
 from models.tsmixer_model import TSMixerModel
+from models.tsmixer_sga import TSMixerModel as TSMixerSGAModel
 from models.transformer_model import TransformerModel
 from models.bilstm_model import BiLSTMModel
 from models.ellefsen_rbm_lstm_model import EllefsenRBMLSTMModel
@@ -46,6 +47,9 @@ def parse_args():
         ],
         help="选择模型架构"
     )
+    # 模型选择
+    parser.add_argument("--model", type=str, default="transformer",
+                        choices=["tsmixer", "tsmixer_sga", "transformer", "bilstm", "rbmlstm", "cnn_tsmixer", "cnn_tsmixer_gated", "tokenpool"], help="选择模型架构")
 
     # 数据集配置
     parser.add_argument("--fault", type=str, default="FD001",
@@ -90,6 +94,15 @@ def parse_args():
     parser.add_argument("--tcn_dropout", type=float, default=0.1, help="TCN 前端 dropout")
     parser.add_argument("--tcn_fuse", type=str, default="mean", choices=["mean", "sum", "cat"], help="BiTCN 正反分支融合方式")
 
+    
+    # TSMixer-SGA特定参数
+    parser.add_argument("--use_sga", action="store_true", help="启用SGA注意力机制")
+    parser.add_argument("--sga_time_rr", type=int, default=4, help="SGA时间方向压缩比")
+    parser.add_argument("--sga_feat_rr", type=int, default=4, help="SGA特征方向压缩比")
+    parser.add_argument("--sga_dropout", type=float, default=0.05, help="SGA内部dropout")
+    parser.add_argument("--sga_pool", type=str, default="mean", 
+                        choices=["mean", "last", "weighted"], help="TSMixer-SGA池化方式")
+    
     # BiLSTM特定参数
     parser.add_argument("--lstm_hidden", type=int, default=64, help="LSTM隐藏层维度")
     parser.add_argument("--lstm_layers", type=int, default=2, help="LSTM层数")
@@ -283,6 +296,8 @@ def create_model(args, input_size, seq_len):
     # === 新增：ECA + BiTCN + TSMixer ===
     elif args.model == "tsmixer_eca":
         model = ECATSMixerModel(
+    elif args.model == "tsmixer_sga":
+        model = TSMixerSGAModel(
             input_size=input_size, seq_len=seq_len,
             num_layers=args.tsmixer_layers,
             time_expansion=args.time_expansion,
@@ -298,6 +313,13 @@ def create_model(args, input_size, seq_len):
             tcn_fuse=args.tcn_fuse
         )
 
+            dropout=args.dropout,
+            use_sga=args.use_sga,
+            sga_time_rr=args.sga_time_rr,
+            sga_feat_rr=args.sga_feat_rr,
+            sga_dropout=args.sga_dropout,
+            pool=args.sga_pool
+        )
     elif args.model == "bilstm":
         model = BiLSTMModel(
             input_size=input_size, seq_len=seq_len,
@@ -536,6 +558,18 @@ def main():
         logger.info(f"use_bitcn: {args.use_bitcn}, tcn_kernel: {args.tcn_kernel}")
         logger.info(f"tcn_dilations: {args.tcn_dilations}, tcn_dropout: {args.tcn_dropout}, tcn_fuse: {args.tcn_fuse}")
 
+    elif args.model == "tsmixer_sga":
+        logger.info("--- TSMixer-SGA 特定参数 ---")
+        logger.info(f"TSMixer层数: {args.tsmixer_layers}")
+        logger.info(f"时间混合层扩展倍数: {args.time_expansion}")
+        logger.info(f"特征混合层扩展倍数: {args.feat_expansion}")
+        logger.info(f"Dropout: {args.dropout}")
+        logger.info(f"启用SGA: {args.use_sga}")
+        if args.use_sga:
+            logger.info(f"SGA时间压缩比: {args.sga_time_rr}")
+            logger.info(f"SGA特征压缩比: {args.sga_feat_rr}")
+            logger.info(f"SGA Dropout: {args.sga_dropout}")
+        logger.info(f"池化方式: {args.sga_pool}")
     elif args.model == "cnn_tsmixer":
         logger.info("--- CNN-TSMixer 特定参数 ---")
         logger.info(f"时间补丁大小: {args.patch}")
@@ -808,6 +842,10 @@ def main():
                           f"-dils{args.tcn_dilations}-fuse{args.tcn_fuse}")
         logger.info(f"架构摘要: {config_summary}")
 
+    elif args.model == "tsmixer_sga":
+        sga_info = f"-SGA{args.sga_time_rr}x{args.sga_feat_rr}" if args.use_sga else "-NoSGA"
+        config_summary = f"TSMixer{sga_info}-L{args.tsmixer_layers}-T{args.time_expansion}x{args.feat_expansion}-P{args.sga_pool}-D{args.dropout}"
+        logger.info(f"架构摘要: {config_summary}")
     elif args.model == "transformer":
         config_summary = f"Transformer-D{args.d_model}-H{args.nhead}-L{args.num_layers}-FF{args.dim_feedforward}"
         logger.info(f"架构摘要: {config_summary}")
